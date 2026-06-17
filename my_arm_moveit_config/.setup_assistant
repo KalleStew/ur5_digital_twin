@@ -1,0 +1,10 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: my_arm_description
+    relative_path: urdf/ur5.urdf
+  srdf:
+    relative_path: config/ur57_arm.srdf
+  package_settings:
+    author_name: Kalle Stewart
+    author_email: kallestewart0@gmail.com
+    generated_timestamp: 1779743428

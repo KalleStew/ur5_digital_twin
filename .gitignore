@@ -1,0 +1,26 @@
+# ROS 2 Build Artifacts (Just in case)
+build/
+install/
+log/
+
+# Dynamic Simulation Data
+*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# C++ / IDEs
+.vscode/
+*.swp
+*.swo
