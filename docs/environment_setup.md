@@ -151,8 +151,8 @@ ros2 pkg list | grep my_arm
 
 You should see:
 ```text
-my_arm_controller
-my_arm_description
-my_arm_moveit_config
+ur5_controller
+ur5_description
+ur5_moveit_config
 ```
 If you see these three packages, your development environment is fully configured and ready for operation!

@@ -41,18 +41,18 @@ The system relies on the following primary topics to bridge MoveIt, Gazebo, and 
 
 ```text
 src/
-├── my_arm_description/           # Physical Data & Physics Engine Setup
+├── ur5_description/           # Physical Data & Physics Engine Setup
 │   ├── config/controllers.yaml   # Hardware interface mapping for Gazebo
 │   ├── launch/sim.launch.py      # Master launch file for Gazebo + URDF spawning
 │   ├── meshes/                   # STL files (visual and collision geometry)
 │   └── urdf/ur5.urdf             # The master URDF with accurate mass/inertia tags
 │
-├── my_arm_moveit_config/         # MoveIt 2 Setup Assistant Outputs
+├── ur5_moveit_config/         # MoveIt 2 Setup Assistant Outputs
 │   ├── config/ros2_controllers.yaml # MoveIt controller tunings (PID gains)
-│   ├── config/ur57_arm.srdf      # Semantic description (groups, end effectors)
+│   ├── config/ur5.srdf      # Semantic description (groups, end effectors)
 │   └── launch/demo.launch.py     # MoveIt planning execution environment
 │
-└── my_arm_controller/            # Custom Control Logic (The "Brains")
+└── ur5_controller/            # Custom Control Logic (The "Brains")
     ├── src/
     │   ├── multi_waypoint_planner.cpp  # C++ Kinematic Brain (MoveIt API)
     │   ├── trajectory_exporter.cpp     # Intercepts /display_planned_path to CSV

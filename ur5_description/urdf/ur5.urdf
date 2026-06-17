@@ -1,0 +1,312 @@
+<?xml version="1.0"?>
+<robot name="ur57_arm">
+
+
+    <!-- With Table -->
+    <link name="world"/>
+
+    <joint name="world_to_table" type="fixed">
+        <parent link="world"/>
+        <child link="table_link"/>
+        <origin xyz="0 0 0.99" rpy="0 0 0"/>
+    </joint>
+
+    <link name="table_link">
+        <visual>
+            <origin xyz="0 0 -0.495" rpy="0 0 0"/>
+            <geometry>
+                <box size="1.525 0.76 0.99"/>
+            </geometry>
+            <material name="table_grey">
+                <color rgba="0.6 0.6 0.6 1.0"/>
+            </material>
+        </visual>
+        <collision>
+            <origin xyz="0 0 -0.495" rpy="0 0 0"/>
+            <geometry>
+                <box size="1.525 0.76 0.99"/>
+            </geometry>
+        </collision>
+        <inertial>
+            <mass value="200.0"/>
+            <origin xyz="0 0 -0.495" rpy="0 0 0"/>
+            <inertia ixx="10.0" ixy="0.0" ixz="0.0" iyy="10.0" iyz="0.0" izz="10.0"/>
+        </inertial>
+    </link>
+
+    <joint name="table_to_robot" type="fixed">
+        <parent link="table_link"/>
+        <child link="base_link"/>
+        <origin xyz="0 0.28 0" rpy="0 0 -1.5708"/>
+    </joint>
+
+
+    <!-- No Table -->
+    <!-- <link name="world"/>
+    <joint name="world_joint" type="fixed">
+        <parent link="world"/>
+        <child link="base_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint> -->
+
+    <link name="base_link">
+        <visual><geometry><mesh filename="package://ur5_description/meshes/visual/ur5_base.stl"/></geometry></visual>
+        <collision><geometry><mesh filename="package://ur5_description/meshes/collision/ur5_base.stl"/></geometry></collision>
+        <inertial>
+            <mass value="4.0"/>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <inertia ixx="0.004433" ixy="0.0" ixz="0.0" iyy="0.004433" iyz="0.0" izz="0.0072"/>
+        </inertial>
+    </link>
+
+    <joint name="shoulder_pan_joint1" type="revolute">
+        <parent link="base_link"/>
+        <child link="shoulder_link1"/>
+        <origin xyz="0 0 0.089159" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/> 
+        <limit effort="150.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <dynamics damping="30.0" friction="15.0"/>
+    </joint>
+
+    <link name="shoulder_link1">
+        <visual><geometry><mesh filename="package://ur5_description/meshes/visual/ur5_shoulder.stl"/></geometry></visual>
+        <collision><geometry><mesh filename="package://ur5_description/meshes/collision/ur5_shoulder.stl"/></geometry></collision>
+        <inertial>
+            <mass value="3.7"/>
+            <origin xyz="0 -0.02561 0.00193" rpy="0 0 0"/>
+            <inertia ixx="0.00375" ixy="0.0" ixz="0.0" iyy="0.00765" iyz="0.0" izz="0.00765"/>
+        </inertial>
+    </link>
+
+    <joint name="shoulder_pan_joint" type="revolute">
+        <parent link="shoulder_link1"/>
+        <child link="shoulder_link"/>
+        <origin xyz="0 0.13585 0" rpy="0 -1.57079632679 -1.57079632679"/> 
+        <axis xyz="0 0 1"/>
+        <limit effort="150.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <dynamics damping="30.0" friction="15.0"/>
+    </joint>
+
+    <link name="shoulder_link">
+        <visual><geometry><mesh filename="package://ur5_description/meshes/visual/ur5_shoulder.stl"/></geometry></visual>
+        <collision><geometry><mesh filename="package://ur5_description/meshes/collision/ur5_shoulder.stl"/></geometry></collision>
+        <inertial>
+            <mass value="3.7"/>
+            <origin xyz="0 -0.02561 0.00193" rpy="0 0 0"/>
+            <inertia ixx="0.00375" ixy="0.0" ixz="0.0" iyy="0.00765" iyz="0.0" izz="0.00765"/>
+        </inertial>
+    </link>
+
+    <joint name="shoulder_lift_joint" type="revolute">
+        <parent link="shoulder_link"/>
+        <child link="upper_arm_link"/>
+        <origin xyz="0 0.13585 0" rpy="0 1.57079632679 0"/>
+        <axis xyz="0 1 0"/>
+        <limit effort="150.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <dynamics damping="30.0" friction="15.0"/>
+    </joint>
+
+    <link name="upper_arm_link">
+        <visual><geometry><mesh filename="package://ur5_description/meshes/visual/ur5_upperarm.stl"/></geometry></visual>
+        <collision><geometry><mesh filename="package://ur5_description/meshes/collision/ur5_upperarm.stl"/></geometry></collision>
+        <inertial>
+            <mass value="8.393"/>
+            <origin xyz="0.2125 0 0.11336" rpy="0 0 0"/>
+            <inertia ixx="0.0085" ixy="0.0" ixz="0.0" iyy="0.208" iyz="0.0" izz="0.208"/>
+        </inertial>
+    </link>
+
+    <joint name="elbow_joint" type="revolute">
+        <parent link="upper_arm_link"/>
+        <child link="forearm_link"/>
+        <origin xyz="0 -0.1197 0.425" rpy="0 0 0"/>
+        <axis xyz="0 1 0"/>
+        <limit effort="150.0" velocity="3.14159" lower="-3.14159" upper="3.14159"/>
+        <dynamics damping="30.0" friction="15.0"/>
+    </joint>
+
+    <link name="forearm_link">
+        <visual><geometry><mesh filename="package://ur5_description/meshes/visual/ur5_forearm.stl"/></geometry></visual>
+        <collision><geometry><mesh filename="package://ur5_description/meshes/collision/ur5_forearm.stl"/></geometry></collision>
+        <inertial>
+            <mass value="2.33"/>
+            <origin xyz="0.15 0 0.0265" rpy="0 0 0"/>
+            <inertia ixx="0.000246" ixy="0.0" ixz="0.0" iyy="0.00719" iyz="0.0" izz="0.00719"/>
+        </inertial>
+    </link>
+
+    <joint name="wrist_1_joint" type="revolute">
+        <parent link="forearm_link"/>
+        <child link="wrist_1_link"/>
+        <origin xyz="0 0 0.39225" rpy="0 1.57079632679 0"/>
+        <axis xyz="0 1 0"/>
+        <limit effort="28.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <dynamics damping="5.0" friction="2.0"/>
+    </joint>
+
+    <link name="wrist_1_link">
+        <visual><geometry><mesh filename="package://ur5_description/meshes/visual/ur5_wrist1.stl"/></geometry></visual>
+        <collision><geometry><mesh filename="package://ur5_description/meshes/collision/ur5_wrist1.stl"/></geometry></collision>
+        <inertial>
+            <mass value="1.219"/>
+            <origin xyz="0 -0.0018 0.01634" rpy="0 0 0"/>
+            <inertia ixx="0.000909" ixy="0.0" ixz="0.0" iyy="0.00119" iyz="0.0" izz="0.00119"/>
+        </inertial>
+    </link>
+
+    <joint name="wrist_2_joint" type="revolute">
+        <parent link="wrist_1_link"/>
+        <child link="wrist_2_link"/>
+        <origin xyz="0 0.093 0" rpy="0 0 0"/>
+        <axis xyz="0 0 1"/>
+        <limit effort="28.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <dynamics damping="5.0" friction="2.0"/>
+    </joint>
+
+    <link name="wrist_2_link">
+        <visual><geometry><mesh filename="package://ur5_description/meshes/visual/ur5_wrist2.stl"/></geometry></visual>
+        <collision><geometry><mesh filename="package://ur5_description/meshes/collision/ur5_wrist2.stl"/></geometry></collision>
+        <inertial>
+            <mass value="1.219"/>
+            <origin xyz="0 0.0018 0.01634" rpy="0 0 0"/>
+            <inertia ixx="0.000909" ixy="0.0" ixz="0.0" iyy="0.00119" iyz="0.0" izz="0.00119"/>
+        </inertial>
+    </link>
+
+    <joint name="wrist_3_joint" type="revolute">
+        <parent link="wrist_2_link"/>
+        <child link="wrist_3_link"/>
+        <origin xyz="0 0 0.09465" rpy="0 0 0"/>
+        <axis xyz="0 1 0"/>
+        <limit effort="28.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <dynamics damping="5.0" friction="2.0"/>
+    </joint>
+
+    <link name="wrist_3_link">
+        <visual><geometry><mesh filename="package://ur5_description/meshes/visual/ur5_wrist3.stl"/></geometry></visual>
+        <collision><geometry><mesh filename="package://ur5_description/meshes/collision/ur5_wrist3.stl"/></geometry></collision>
+        <inertial>
+            <mass value="0.1879"/>
+            <origin xyz="0 0 -0.00159" rpy="0 0 0"/>
+            <inertia ixx="0.000122" ixy="0.0" ixz="0.0" iyy="0.0000821" iyz="0.0" izz="0.0000821"/>
+        </inertial>
+    </link>
+
+    <joint name="ee_fixed_joint" type="fixed">
+        <parent link="wrist_3_link"/>
+        <child link="ee_link"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+    <link name="ee_link"/>
+
+    <joint name="wrist_3_link_tool0_fixed_joint" type="fixed">
+        <parent link="wrist_3_link"/>
+        <child link="tool0"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+    </joint>
+    <link name="tool0"/>
+
+    <!-- TEST -->
+    <ros2_control name="IgnitionSystem" type="system">
+        <hardware>
+            <plugin>ign_ros2_control/IgnitionSystem</plugin>
+        </hardware>
+
+        <joint name="shoulder_pan_joint1">
+            <!-- GAZEBO PHYSICS GAINS MUST BE DIRECTLY UNDER THE JOINT -->
+            <param name="p">20000.0</param>
+            <param name="i">100.0</param>
+            <param name="d">500.0</param>
+            
+            <command_interface name="position"/>
+            <command_interface name="effort"/>
+            <state_interface name="position"/>
+            <state_interface name="velocity"/>
+            <state_interface name="effort"/>
+        </joint>
+
+        <joint name="shoulder_pan_joint">
+            <param name="p">20000.0</param>
+            <param name="i">100.0</param>
+            <param name="d">500.0</param>
+            
+            <command_interface name="position"/>
+            <command_interface name="effort"/>
+            <state_interface name="position"/>
+            <state_interface name="velocity"/>
+            <state_interface name="effort"/>
+        </joint>
+
+        <joint name="shoulder_lift_joint">
+            <param name="p">30000.0</param>
+            <param name="i">200.0</param>
+            <param name="d">1000.0</param>
+            
+            <command_interface name="position"/>
+            <command_interface name="effort"/>
+            <state_interface name="position"/>
+            <state_interface name="velocity"/>
+            <state_interface name="effort"/>
+        </joint>
+
+        <joint name="elbow_joint">
+            <param name="p">15000.0</param>
+            <param name="i">100.0</param>
+            <param name="d">500.0</param>
+            
+            <command_interface name="position"/>
+            <command_interface name="effort"/>
+            <state_interface name="position"/>
+            <state_interface name="velocity"/>
+            <state_interface name="effort"/>
+        </joint>
+
+        <joint name="wrist_1_joint">
+            <param name="p">2000.0</param>
+            <param name="i">50.0</param>
+            <param name="d">100.0</param>
+            
+            <command_interface name="position"/>
+            <command_interface name="effort"/>
+            <state_interface name="position"/>
+            <state_interface name="velocity"/>
+            <state_interface name="effort"/>
+        </joint>
+
+        <joint name="wrist_2_joint">
+            <param name="p">2000.0</param>
+            <param name="i">50.0</param>
+            <param name="d">100.0</param>
+            
+            <command_interface name="position"/>
+            <command_interface name="effort"/>
+            <state_interface name="position"/>
+            <state_interface name="velocity"/>
+            <state_interface name="effort"/>
+        </joint>
+
+        <joint name="wrist_3_joint">
+            <param name="p">1000.0</param>
+            <param name="i">10.0</param>
+            <param name="d">50.0</param>
+            
+            <command_interface name="position"/>
+            <command_interface name="effort"/>
+            <state_interface name="position"/>
+            <state_interface name="velocity"/>
+            <state_interface name="effort"/>
+        </joint>
+    </ros2_control>
+    
+    <gazebo>
+        <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
+            <!-- ABSOLUTE PATH FIX: Bypasses Gazebo's broken $(find) parser -->
+            <parameters>/home/kallestewart/ros2_ws/src/ur5_digital_twin/ur5_moveit_config/config/ros2_controllers.yaml</parameters>
+        </plugin>
+    </gazebo>
+
+    <gazebo reference="table_link">
+        <material>Gazebo/Wood</material>
+    </gazebo>
+
+</robot>

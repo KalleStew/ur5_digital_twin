@@ -18,9 +18,9 @@ This repository provides a highly accurate, physics-enabled simulation of a UR5 
 
 The workspace is organized into three primary ROS 2 colcon packages:
 
-* `my_arm_description`: The physical blueprint. Contains the URDF, STL meshes, collision tables, and Gazebo plugins.
-* `my_arm_moveit_config`: The kinematic configuration. Contains the SRDF, joint limits, and controller configurations generated for MoveIt 2.
-* `my_arm_controller`: The system brain. Contains the split-level C++ path planners and Python AI dynamic torque controllers.
+* `ur5_description`: The physical blueprint. Contains the URDF, STL meshes, collision tables, and Gazebo plugins.
+* `ur5_moveit_config`: The kinematic configuration. Contains the SRDF, joint limits, and controller configurations generated for MoveIt 2.
+* `ur5_controller`: The system brain. Contains the split-level C++ path planners and Python AI dynamic torque controllers.
 
 ## Documentation Overview
 
