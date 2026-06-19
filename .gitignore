@@ -5,6 +5,8 @@ log/
 
 # Dynamic Simulation Data
 *.csv
+*.h5
+
 
 # Python
 __pycache__/
