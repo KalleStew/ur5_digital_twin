@@ -215,9 +215,9 @@ class ConventionalResearchController(Node):
             with open(filepath, 'w', newline='') as f:
                 writer = csv.writer(f)
                 writer.writerow(['time_sec'] + self.joint_names)
-                writer.writerow([4.0, 0.0, 0.5, -1.5708, 0.0, 0.0, 0.0, 0.0]) # Pan Left
-                writer.writerow([8.0, 0.0, -0.5, -1.5708, 0.0, 0.0, 0.0, 0.0]) # Pan Right
-                writer.writerow([12.0, 0.0, 0.0, -1.5708, 0.0, 0.0, 0.0, 0.0]) # Center
+                writer.writerow([4.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) # Pan Left
+                writer.writerow([8.0, -0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) # Pan Right
+                writer.writerow([12.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]) # Center
 
         points = []
         with open(filepath, 'r') as f:

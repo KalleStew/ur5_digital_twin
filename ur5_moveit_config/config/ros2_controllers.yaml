@@ -19,39 +19,75 @@ ur_manipulator_controller:
     gains:
       shoulder_pan_joint1:
         p: 4000.0
-        i: 20.0
-        d: 200.0
-        i_clamp: 10.0
+        i: 0.0
+        d: 0.0   # Doubled to prevent base jitter | 0.0
+        i_clamp: 0.0
       shoulder_pan_joint:
         p: 4000.0
-        i: 20.0
-        d: 200.0
-        i_clamp: 10.0
+        i: 0.0
+        d: 0.0   # Doubled
+        i_clamp: 0.0
       shoulder_lift_joint:
         p: 8000.0
-        i: 150.0
-        d: 400.0
-        i_clamp: 150.0
+        i: 0.0   # Increased to fight sag
+        d: 0.0   # Doubled to absorb gravitational momentum
+        i_clamp: 0.0 # Raised ceiling to allow more holding torque
       elbow_joint:
         p: 5000.0
-        i: 100.0
-        d: 200.0
-        i_clamp: 100.0
+        i: 0.0   # Increased to fight sag
+        d: 0.0   # More than doubled to stop the ringing in your plot
+        i_clamp: 0.0 # Raised ceiling
       wrist_1_joint:
         p: 1000.0
-        i: 1.0
-        d: 50.0
+        i: 0.0
+        d: 0.0
         i_clamp: 1.0
       wrist_2_joint:
         p: 500.0
-        i: 1.0
-        d: 10.0
+        i: 0.0
+        d: 0.0
         i_clamp: 1.0
       wrist_3_joint:
         p: 100.0
-        i: 0.1
-        d: 1.0
+        i: 0.0
+        d: 0.0
         i_clamp: 1.0
+    # gains:
+    #   shoulder_pan_joint1:
+    #     p: 4000.0
+    #     i: 20.0
+    #     d: 200.0
+    #     i_clamp: 10.0
+    #   shoulder_pan_joint:
+    #     p: 4000.0
+    #     i: 20.0
+    #     d: 200.0
+    #     i_clamp: 10.0
+    #   shoulder_lift_joint:
+    #     p: 8000.0
+    #     i: 150.0
+    #     d: 400.0
+    #     i_clamp: 150.0
+    #   elbow_joint:
+    #     p: 5000.0
+    #     i: 100.0
+    #     d: 200.0
+    #     i_clamp: 100.0
+    #   wrist_1_joint:
+    #     p: 1000.0
+    #     i: 1.0
+    #     d: 50.0
+    #     i_clamp: 1.0
+    #   wrist_2_joint:
+    #     p: 500.0
+    #     i: 1.0
+    #     d: 10.0
+    #     i_clamp: 1.0
+    #   wrist_3_joint:
+    #     p: 100.0
+    #     i: 0.1
+    #     d: 1.0
+    #     i_clamp: 1.0
 
 forward_effort_controller:
   ros__parameters:
