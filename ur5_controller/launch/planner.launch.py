@@ -3,7 +3,7 @@ from launch_ros.actions import Node
 from moveit_configs_utils import MoveItConfigsBuilder
 
 def generate_launch_description():
-    moveit_config = MoveItConfigsBuilder("ur57_arm", package_name="ur5_moveit_config").to_moveit_configs()
+    moveit_config = MoveItConfigsBuilder("ur5_arm", package_name="ur5_moveit_config").to_moveit_configs()
 
     planner_node = Node(
         package="ur5_controller",

@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.8)
 project(ur5_controller)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
@@ -18,9 +21,14 @@ find_package(moveit_msgs REQUIRED)
 add_executable(multi_waypoint_planner src/multi_waypoint_planner.cpp)
 
 
-# 3. Link the required libraries to your new executable
-# ament_target_dependencies(move_arm rclcpp moveit_ros_planning_interface geometry_msgs)
-ament_target_dependencies(multi_waypoint_planner rclcpp moveit_msgs geometry_msgs moveit_ros_planning_interface)
+# 3. Link the required libraries to your new executable using modern CMake targets
+# ament_target_dependencies is deprecated — use target_link_libraries with explicit targets
+target_link_libraries(multi_waypoint_planner
+  rclcpp::rclcpp
+  ${moveit_ros_planning_interface_TARGETS}
+  ${geometry_msgs_TARGETS}
+  ${moveit_msgs_TARGETS}
+)
 
 # 4. Install the executable so the ROS 2 system can find it
 install(TARGETS

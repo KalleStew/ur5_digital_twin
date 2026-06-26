@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="ur57_arm">
+<robot name="ur5_arm">
 
 
     <!-- With Table -->
@@ -64,7 +64,7 @@
         <child link="shoulder_link1"/>
         <origin xyz="0 0 0.089159" rpy="0 0 0"/>
         <axis xyz="0 0 1"/> 
-        <limit effort="150.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <limit effort="150.0" velocity="3.14159" acceleration="5.0" jerk="10.0" lower="-6.28318" upper="6.28318"/>
         <dynamics damping="30.0" friction="15.0"/>
     </joint>
 
@@ -83,7 +83,7 @@
         <child link="shoulder_link"/>
         <origin xyz="0 0.13585 0" rpy="0 -1.57079632679 -1.57079632679"/> 
         <axis xyz="0 0 1"/>
-        <limit effort="150.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <limit effort="150.0" velocity="3.14159" acceleration="5.0" jerk="10.0" lower="-6.28318" upper="6.28318"/>
         <dynamics damping="30.0" friction="15.0"/>
     </joint>
 
@@ -102,7 +102,7 @@
         <child link="upper_arm_link"/>
         <origin xyz="0 0.13585 0" rpy="0 1.57079632679 0"/>
         <axis xyz="0 1 0"/>
-        <limit effort="150.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <limit effort="150.0" velocity="3.14159" acceleration="5.0" jerk="10.0" lower="-6.28318" upper="6.28318"/>
         <dynamics damping="30.0" friction="15.0"/>
     </joint>
 
@@ -121,7 +121,7 @@
         <child link="forearm_link"/>
         <origin xyz="0 -0.1197 0.425" rpy="0 0 0"/>
         <axis xyz="0 1 0"/>
-        <limit effort="150.0" velocity="3.14159" lower="-3.14159" upper="3.14159"/>
+        <limit effort="150.0" velocity="3.14159" acceleration="5.0" jerk="10.0" lower="-3.14159" upper="3.14159"/>
         <dynamics damping="30.0" friction="15.0"/>
     </joint>
 
@@ -140,7 +140,7 @@
         <child link="wrist_1_link"/>
         <origin xyz="0 0 0.39225" rpy="0 1.57079632679 0"/>
         <axis xyz="0 1 0"/>
-        <limit effort="28.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <limit effort="28.0" velocity="3.14159" acceleration="5.0" jerk="10.0" lower="-6.28318" upper="6.28318"/>
         <dynamics damping="5.0" friction="2.0"/>
     </joint>
 
@@ -159,7 +159,7 @@
         <child link="wrist_2_link"/>
         <origin xyz="0 0.093 0" rpy="0 0 0"/>
         <axis xyz="0 0 1"/>
-        <limit effort="28.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <limit effort="28.0" velocity="3.14159" acceleration="5.0" jerk="10.0" lower="-6.28318" upper="6.28318"/>
         <dynamics damping="5.0" friction="2.0"/>
     </joint>
 
@@ -178,7 +178,7 @@
         <child link="wrist_3_link"/>
         <origin xyz="0 0 0.09465" rpy="0 0 0"/>
         <axis xyz="0 1 0"/>
-        <limit effort="28.0" velocity="3.14159" lower="-6.28318" upper="6.28318"/>
+        <limit effort="28.0" velocity="3.14159" acceleration="5.0" jerk="10.0" lower="-6.28318" upper="6.28318"/>
         <dynamics damping="5.0" friction="2.0"/>
     </joint>
 
@@ -206,10 +206,9 @@
     </joint>
     <link name="tool0"/>
 
-    <!-- TEST -->
-    <ros2_control name="IgnitionSystem" type="system">
+    <ros2_control name="GazeboSystem" type="system">
         <hardware>
-            <plugin>ign_ros2_control/IgnitionSystem</plugin>
+            <plugin>gz_ros2_control/GazeboSystem</plugin>
         </hardware>
 
         <joint name="shoulder_pan_joint1">
@@ -299,14 +298,10 @@
     </ros2_control>
     
     <gazebo>
-        <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
-            <!-- ABSOLUTE PATH FIX: Bypasses Gazebo's broken $(find) parser -->
-            <parameters>/home/kallestewart/ros2_ws/src/ur5_digital_twin/ur5_moveit_config/config/ros2_controllers.yaml</parameters>
+        <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboROS2ControlPlugin">
+            <!-- ros2_controllers.yaml is injected at launch time via gazebo_sim.launch.py -->
+            <!-- No hardcoded absolute paths; path resolved from ament index in launch file -->
         </plugin>
-    </gazebo>
-
-    <gazebo reference="table_link">
-        <material>Gazebo/Wood</material>
     </gazebo>
 
 </robot>

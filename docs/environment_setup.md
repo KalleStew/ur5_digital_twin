@@ -1,17 +1,387 @@
 # Development Environment Setup
 
-This guide provides step-by-step instructions for configuring a local machine to run the UR5 Digital Twin and HIL platform.
+This guide provides step-by-step instructions for configuring a local machine to run the UR5 Digital Twin and HIL platform on **ROS 2 Lyrical Luthien (LL) / Ubuntu 26.04**.
 
 The project is designed for:
 
-- **Ubuntu 22.04 LTS Jammy Jellyfish**
-- **ROS 2 Humble Hawksbill**
+- **Ubuntu 26.04 LTS**
+- **ROS 2 Lyrical Luthien**
 - **MoveIt 2**
-- **Gazebo / Ignition Gazebo**
-- **ros2_control**
-- **WSL2, native Ubuntu, or an Ubuntu virtual machine**
+- **Gazebo Harmonic+**
+- **gz_ros2_control**
+- **Eclipse Zenoh (`rmw_zenoh_cpp`)** as the Tier 1 middleware
+- **WSL2 (Windows)** or **ARM64 Virtual Machine (Apple Silicon Mac)**
 
-This guide is written primarily for **Windows users running Ubuntu 22.04 through WSL2**, but the ROS 2 installation and workspace setup steps also apply to native Ubuntu and Ubuntu virtual machines.
+---
+
+## Table of Contents
+
+1. [Host Platform Configuration](#1-host-platform-configuration)
+2. [ROS 2 Lyrical Luthien Installation](#2-ros-2-lyrical-luthien-installation)
+3. [Eclipse Zenoh Middleware Setup](#3-eclipse-zenoh-middleware-setup)
+4. [System and Simulation Dependencies](#4-system-and-simulation-dependencies)
+5. [Python Numerical Package Compatibility](#5-python-numerical-package-compatibility)
+6. [Workspace and Repository Setup](#6-workspace-and-repository-setup)
+7. [Build and Source the Workspace](#7-build-and-source-the-workspace)
+8. [bashrc Configuration](#8-bashrc-configuration)
+9. [Graphics Configuration for WSL2 and ARM64 VM](#9-graphics-configuration-for-wsl2-and-arm64-vm)
+10. [Environment Verification](#10-environment-verification)
+11. [Quick Setup Command Summary](#11-quick-setup-command-summary)
+
+---
+
+## 1. Host Platform Configuration
+
+### Option A: Windows Subsystem for Linux 2 (WSL2)
+
+Recommended for Windows 11 hosts. WSLg provides native GUI passthrough for RViz and Gazebo without an external X11 server.
+
+#### Step 1: Install Ubuntu 26.04 in WSL2
+
+Open **PowerShell as Administrator**:
+
+```powershell
+wsl --install -d Ubuntu-26.04
+```
+
+Restart if prompted. Open **Ubuntu 26.04** from the Start Menu and create your Linux username and password.
+
+#### Step 2: Confirm Ubuntu version
+
+```bash
+lsb_release -a
+# Expected: Release: 26.04  Codename: noble (or the 26.04 codename)
+```
+
+#### Step 3: Update Ubuntu
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+#### Step 4: Allocate memory to WSL2
+
+Create or edit `C:\Users\<YourUsername>\.wslconfig`:
+
+```ini
+[wsl2]
+memory=12GB
+processors=6
+swap=4GB
+localhostForwarding=true
+```
+
+Restart WSL:
+```powershell
+wsl --shutdown
+```
+
+---
+
+### Option B: Apple Silicon (ARM64) Virtual Machine
+
+Recommended setup: **UTM** or **Parallels Desktop** running an Ubuntu 26.04 ARM64 ISO.
+
+> ROS 2 LL ships ARM64 `.deb` packages for Ubuntu 26.04 as a Tier 1 platform. No cross-compilation required.
+
+#### Step 1: Download Ubuntu 26.04 ARM64
+
+Download the Ubuntu 26.04 Server or Desktop ARM64 ISO from [ubuntu.com/download](https://ubuntu.com/download).
+
+#### Step 2: Create VM
+
+- **UTM (free):** New VM → Virtualize → Linux → select the ARM64 ISO. Allocate ≥ 8 GB RAM, ≥ 4 CPU cores.
+- **Parallels:** New → Install Windows or another OS → select the ISO. Enable Rosetta for maximum compatibility.
+
+#### Step 3: Install Ubuntu, then update
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+#### Step 4: Confirm architecture
+
+```bash
+dpkg --print-architecture
+# Expected: arm64
+```
+
+---
+
+## 2. ROS 2 Lyrical Luthien Installation
+
+These steps are identical for WSL2 and ARM64 VM.
+
+#### Step 1: Configure locale
+
+```bash
+sudo locale-gen en_US en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
+```
+
+#### Step 2: Add ROS 2 apt repository
+
+```bash
+sudo apt install -y software-properties-common curl gnupg2 lsb-release
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+  -o /usr/share/keyrings/ros-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
+  http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" \
+  | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+sudo apt update
+```
+
+#### Step 3: Install ROS 2 LL desktop and tools
+
+```bash
+sudo apt install -y \
+  ros-ll-desktop \
+  python3-colcon-common-extensions \
+  python3-rosdep \
+  python3-vcstool
+sudo rosdep init
+rosdep update
+```
+
+---
+
+## 3. Eclipse Zenoh Middleware Setup
+
+Eclipse Zenoh replaces FastDDS as the default middleware for this project. It eliminates DDS participant-discovery overhead on high-frequency torque array channels (100 Hz effort streams critical to the HIL architecture).
+
+#### Step 1: Install the Zenoh RMW
+
+```bash
+sudo apt install -y ros-ll-rmw-zenoh-cpp
+```
+
+#### Step 2: Configure `.bashrc` (see [Section 8](#8-bashrc-configuration) for full template)
+
+```bash
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+```
+
+#### Step 3: (Optional) Run Zenoh router for multi-machine setups
+
+If running the digital twin across multiple machines (e.g., Windows WSL2 controlling a physical arm on a separate Linux host), start the Zenoh router before launching ROS nodes:
+
+```bash
+ros2 run rmw_zenoh_cpp rmw_zenohd &
+```
+
+For single-machine setups (WSL2 or ARM64 VM), peer-to-peer discovery works without a router.
+
+---
+
+## 4. System and Simulation Dependencies
+
+```bash
+sudo apt install -y \
+  ros-ll-moveit \
+  ros-ll-moveit-ros-move-group \
+  ros-ll-moveit-configs-utils \
+  ros-ll-gz-ros2-control \
+  ros-ll-ros-gz-sim \
+  ros-ll-ros-gz-bridge \
+  ros-ll-controller-manager \
+  ros-ll-joint-trajectory-controller \
+  ros-ll-joint-state-broadcaster \
+  ros-ll-forward-command-controller \
+  ros-ll-robot-state-publisher \
+  ros-ll-rviz2 \
+  ros-ll-warehouse-ros-sqlite \
+  python3-h5py \
+  python3-numpy \
+  python3-scipy
+```
+
+---
+
+## 5. Python Numerical Package Compatibility
+
+The HIL scripts use `h5py` for 100 Hz telemetry logging and `scipy` for Butterworth filtering. Verify versions after installation:
+
+```bash
+python3 -c "import h5py; print('h5py:', h5py.__version__)"
+python3 -c "import numpy; print('numpy:', numpy.__version__)"
+python3 -c "import scipy; print('scipy:', scipy.__version__)"
+```
+
+If you see import errors related to ABI incompatibility between `numpy` 1.x and 2.x:
+```bash
+pip3 install --upgrade numpy
+```
+
+---
+
+## 6. Workspace and Repository Setup
+
+```bash
+mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+git clone <repository_url> ur5_digital_twin
+cd ur5_digital_twin
+git checkout feature/ubuntu26-ll-migration   # or main after merge
+```
+
+Install rosdep dependencies for all packages:
+```bash
+cd ~/ros2_ws
+rosdep install --from-paths src --ignore-src -r -y
+```
+
+---
+
+## 7. Build and Source the Workspace
+
+```bash
+cd ~/ros2_ws
+source /opt/ros/ll/setup.bash
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=RelWithDebInfo
+source install/setup.bash
+```
+
+`--symlink-install` is important for Python scripts and launch files — edits to those files take effect immediately without rebuilding.
+
+`RelWithDebInfo` gives debug symbols for GDB while keeping optimizations active for real-time performance.
+
+---
+
+## 8. bashrc Configuration
+
+Append the following to `~/.bashrc`:
+
+```bash
+# ============================================================
+# ROS 2 Lyrical Luthien — UR5 Digital Twin Environment
+# ============================================================
+
+# Source ROS 2 LL
+source /opt/ros/ll/setup.bash
+
+# Source the built workspace (comment out until first build completes)
+source ~/ros2_ws/install/setup.bash
+
+# Eclipse Zenoh — Tier 1 RMW for HIL high-frequency torque channels
+# Eliminates FastDDS participant-discovery overhead at 100 Hz
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+
+# Gazebo Harmonic+ resource path (IGN_GAZEBO_RESOURCE_PATH is retired)
+export GZ_SIM_RESOURCE_PATH=$GZ_SIM_RESOURCE_PATH:~/ros2_ws/install/ur5_description/share
+
+# Simulation time flag (propagated to nodes that check this env var)
+export USE_SIM_TIME=true
+
+# colcon build shortcut
+alias cb='cd ~/ros2_ws && colcon build --symlink-install && source install/setup.bash'
+
+# Nuke and rebuild shortcut (see troubleshooting_and_reset.md)
+alias nuke='cd ~/ros2_ws && rm -rf build/ install/ log/ && colcon build --symlink-install && source install/setup.bash'
+```
+
+Apply immediately:
+```bash
+source ~/.bashrc
+```
+
+---
+
+## 9. Graphics Configuration for WSL2 and ARM64 VM
+
+### WSL2 (Windows)
+
+WSLg (included in Windows 11 WSL2) provides automatic X11/Wayland passthrough. No configuration needed. If Gazebo or RViz fails to open a window:
+
+```bash
+# Verify WSLg is active
+echo $DISPLAY
+# Expected output: :0  (or similar)
+
+# Force software rendering if GPU passthrough fails
+export LIBGL_ALWAYS_SOFTWARE=1
+```
+
+### ARM64 VM (Apple Silicon)
+
+In UTM with SPICE display or Parallels with X11:
+
+```bash
+# Install Mesa software renderer as fallback
+sudo apt install -y mesa-utils libgl1-mesa-dri
+
+# Verify OpenGL
+glxinfo | grep "OpenGL renderer"
+
+# If Gazebo fails to start, force software rendering
+export MESA_GL_VERSION_OVERRIDE=3.3
+export LIBGL_ALWAYS_SOFTWARE=1
+```
+
+---
+
+## 10. Environment Verification
+
+Run these checks in order after completing setup:
+
+```bash
+# 1. ROS 2 distro
+printenv ROS_DISTRO
+# Expected: ll
+
+# 2. Middleware
+ros2 doctor --report | grep rmw
+# Expected: rmw_zenoh_cpp
+
+# 3. Packages visible
+ros2 pkg list | grep ur5
+# Expected: ur5_controller  ur5_description  ur5_moveit_config
+
+# 4. Launch the full simulation
+ros2 launch ur5_moveit_config gazebo_sim.launch.py
+
+# 5. In a second terminal — verify all controllers loaded
+ros2 control list_controllers
+# Expected:
+#   joint_state_broadcaster   [active]
+#   ur_manipulator_controller [active]
+#   forward_effort_controller [inactive]
+```
+
+---
+
+## 11. Quick Setup Command Summary
+
+```bash
+# ── Install ROS 2 LL ──────────────────────────────────────────────────────────
+sudo apt install -y ros-ll-desktop python3-colcon-common-extensions python3-rosdep
+sudo rosdep init && rosdep update
+
+# ── Install Zenoh ─────────────────────────────────────────────────────────────
+sudo apt install -y ros-ll-rmw-zenoh-cpp
+
+# ── Install simulation stack ──────────────────────────────────────────────────
+sudo apt install -y ros-ll-moveit ros-ll-gz-ros2-control ros-ll-ros-gz-sim \
+  ros-ll-controller-manager ros-ll-joint-trajectory-controller \
+  ros-ll-joint-state-broadcaster ros-ll-forward-command-controller \
+  ros-ll-warehouse-ros-sqlite python3-h5py python3-numpy python3-scipy
+
+# ── Clone repository ──────────────────────────────────────────────────────────
+mkdir -p ~/ros2_ws/src && cd ~/ros2_ws/src
+git clone <repository_url> ur5_digital_twin
+
+# ── Install rosdep dependencies ───────────────────────────────────────────────
+cd ~/ros2_ws && rosdep install --from-paths src --ignore-src -r -y
+
+# ── Build ─────────────────────────────────────────────────────────────────────
+source /opt/ros/ll/setup.bash
+colcon build --symlink-install
+source install/setup.bash
+
+# ── Launch ────────────────────────────────────────────────────────────────────
+ros2 launch ur5_moveit_config gazebo_sim.launch.py
+```
+
 
 ---
 

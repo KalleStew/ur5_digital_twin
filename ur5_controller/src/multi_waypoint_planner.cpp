@@ -1,8 +1,8 @@
 #include <rclcpp/rclcpp.hpp>
-#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/planning_interface/move_group_interface.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <moveit_msgs/msg/display_trajectory.hpp>
-#include <moveit/robot_state/conversions.h>
+#include <moveit/robot_state/robot_state.hpp>
 #include <thread>
 #include <iostream>
 #include <fstream>
@@ -53,10 +53,11 @@ public:
           continue;
         }
 
-        const double jump_threshold = 0.0;
-        const double eef_step = 0.01; // 1 cm resolution
-        
-        double fraction = move_group_->computeCartesianPath(waypoints_, eef_step, jump_threshold, calculated_trajectory_);
+        // jump_threshold removed in MoveIt 2 / ROS 2 LL; use CartesianInterpolator struct
+        moveit::planning_interface::MoveGroupInterface::CartesianInterpolator interp;
+        interp.max_step = 0.01; // 1 cm resolution
+
+        double fraction = move_group_->computeCartesianPath(waypoints_, interp, calculated_trajectory_);
         
         if (fraction < 1.0) {
             RCLCPP_WARN(this->get_logger(), "Path Calculation: %.2f%%. The straight line hit the table or joint limits!", fraction * 100.0);

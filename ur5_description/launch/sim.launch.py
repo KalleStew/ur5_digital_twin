@@ -1,8 +1,9 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, RegisterEventHandler
+from launch.actions import IncludeLaunchDescription, RegisterEventHandler
 from launch.event_handlers import OnProcessExit
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 
 def generate_launch_description():
@@ -21,10 +22,12 @@ def generate_launch_description():
         parameters=[{'robot_description': robot_desc}]
     )
 
-    # 2. Start Ignition Gazebo (Empty world)
-    gazebo = ExecuteProcess(
-        cmd=['ign', 'gazebo', '-r', 'empty.sdf'],
-        output='screen'
+    # 2. Start Gazebo Sim — 'ign gazebo' retired; use ros_gz_sim launch include
+    pkg_ros_gz_sim = get_package_share_directory('ros_gz_sim')
+    gazebo = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(pkg_ros_gz_sim, 'launch', 'gz_sim.launch.py')),
+        launch_arguments={'gz_args': '-r empty.sdf'}.items(),
     )
 
     # 3. Spawn the robot into Gazebo
@@ -35,15 +38,23 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 4. Load the Joint State Broadcaster
-    load_joint_state_broadcaster = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active', 'joint_state_broadcaster'],
+    # 4. Load the Joint State Broadcaster (spawner replaces deprecated load_controller)
+    load_joint_state_broadcaster = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['joint_state_broadcaster',
+                   '--controller-manager', '/controller_manager',
+                   '--controller-manager-timeout', '30'],
         output='screen'
     )
 
-    # 5. Load the Arm Controller
-    load_arm_controller = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active', 'arm_controller'],
+    # 5. Load the Trajectory Controller
+    load_arm_controller = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['ur_manipulator_controller',
+                   '--controller-manager', '/controller_manager',
+                   '--controller-manager-timeout', '30'],
         output='screen'
     )
 

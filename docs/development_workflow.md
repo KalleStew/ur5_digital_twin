@@ -1,33 +1,189 @@
 # Development Workflow & Hardware Integration
 
-This document outlines the standard practices for modifying the UR5 Digital Twin, synchronizing the codebase across multiple machines, and the roadmap for integrating physical hardware.
+This document outlines standard practices for modifying the UR5 Digital Twin, the threaded Python Action Client architecture used in HIL scripts, the controller swap procedure, and the roadmap for integrating physical hardware.
 
 ---
 
 ## 1. Branching Strategy
 
-To protect the stability of the core simulation, **never commit experimental code directly to the `main` branch.**
+Never commit experimental code directly to `main`.
 
-* **`main`**: The stable, working version of the digital twin. It should always compile successfully and launch Gazebo without errors.
-* **`feature/*`**: Used for developing new AI control schemes, adding new ROS 2 nodes, or tweaking MoveIt kinematics.
-* **`hardware/*`**: Dedicated branches for introducing and testing physical controllers (e.g., the Platinum Maestro).
+* **`main`**: Stable, working version. Must compile and launch Gazebo without errors.
+* **`feature/*`**: New AI control schemes, new ROS 2 nodes, MoveIt kinematics tuning.
+* **`hardware/*`**: Physical controller integration (Platinum Maestro).
+* **`migration/*`**: Platform migrations (e.g., `feature/ubuntu26-ll-migration`).
 
-**Standard Workflow Commands:**
+**Standard workflow:**
 ```bash
-# 1. Ensure you are on main and up to date
-git checkout main
-git pull origin main
+# Ensure main is up to date
+git checkout main && git pull origin main
 
-# 2. Create a new branch for your experiment
-git checkout -b feature/new-ai-controller
+# Create feature branch
+git checkout -b feature/new-torque-strategy
 
-# [Write your code, test in Gazebo...]
-
-# 3. Add, commit, and push your branch
-git add .
-git commit -m "Added new dynamic torque array generator"
-git push -u origin feature/new-ai-controller
+# After testing in Gazebo
+git add . && git commit -m "feat: add adaptive torque ramp controller"
+git push -u origin feature/new-torque-strategy
 ```
+
+---
+
+## 2. Threaded Python Action Client Architecture
+
+All Python HIL scripts (`conventional_joint_space.py`, `conventional_cartesian_ik.py`) use a mandatory two-thread pattern to prevent `SingleThreadedExecutor` deadlocks.
+
+### The Problem
+
+The `FollowJointTrajectory` action server inside `ros2_control` sends a `GoalResponse` callback back to the caller. If `rclpy.spin()` and `send_goal_async()` both run on the same thread, the response callback can never be processed — the node deadlocks waiting for itself.
+
+### The Solution
+
+```python
+class HILController(Node):
+    def __init__(self):
+        super().__init__('hil_controller',
+            parameter_overrides=[Parameter('use_sim_time', Parameter.Type.BOOL, True)])
+
+        # Action client talks to ur_manipulator_controller
+        self.action_client = ActionClient(
+            self, FollowJointTrajectory,
+            '/ur_manipulator_controller/follow_joint_trajectory')
+
+        # Sensor subscriber (100 Hz telemetry recorder)
+        self.state_sub = self.create_subscription(
+            JointState, '/joint_states', self.sensor_callback, 10)
+
+        # CRITICAL: control logic runs in a background thread.
+        # rclpy.spin() will hold the main thread (see __main__ block below).
+        self.control_thread = threading.Thread(target=self.run_experiment)
+        self.control_thread.daemon = True
+        self.control_thread.start()
+
+    def run_experiment(self):
+        """Runs in background thread. Never call rclpy.spin() here."""
+        self.action_client.wait_for_server()   # blocks background thread only
+        # ... build goal, send, record telemetry ...
+
+def main():
+    rclpy.init()
+    node = HILController()
+    rclpy.spin(node)   # main thread processes callbacks
+    node.destroy_node()
+    rclpy.shutdown()
+```
+
+### Rules
+- `rclpy.spin(node)` **must** run in `main()` on the main thread.
+- All blocking calls (`wait_for_server`, `send_goal_async`, HDF5 writes) run inside `run_experiment()` on the daemon thread.
+- Never call `rclpy.spin()` or `spin_until_future_complete()` from the background thread.
+
+---
+
+## 3. On-the-Fly Controller Swap (No Gazebo Restart)
+
+The dual-brain architecture switches authority between position control and raw torque injection via the `/controller_manager/switch_controller` service. Gazebo does not need to be restarted.
+
+### Swap: Position → Torque (activate `forward_effort_controller`)
+
+```bash
+ros2 service call /controller_manager/switch_controller \
+  controller_manager_msgs/srv/SwitchController \
+  "{
+    activate_controllers: ['forward_effort_controller'],
+    deactivate_controllers: ['ur_manipulator_controller'],
+    strictness: 2
+  }"
+```
+
+### Swap: Torque → Position (restore `ur_manipulator_controller`)
+
+```bash
+ros2 service call /controller_manager/switch_controller \
+  controller_manager_msgs/srv/SwitchController \
+  "{
+    activate_controllers: ['ur_manipulator_controller'],
+    deactivate_controllers: ['forward_effort_controller'],
+    strictness: 2
+  }"
+```
+
+**`strictness: 2`** (`STRICT`) means the service call fails entirely if any requested controller cannot be switched — preventing partial states where both controllers are active simultaneously (which would cause conflicting effort commands on the same joints).
+
+### Verify current controller state
+
+```bash
+ros2 control list_controllers
+```
+
+Expected output after standard launch:
+```
+joint_state_broadcaster   [active]
+ur_manipulator_controller [active]
+forward_effort_controller [inactive]
+```
+
+---
+
+## 4. HDF5 Telemetry Logging
+
+HIL scripts write joint state telemetry to `.h5` files at 100 Hz using the `sensor_callback` registered on `/joint_states`. Files are written to `ur5_controller/src/`.
+
+**Reading a log file:**
+```python
+import h5py
+import numpy as np
+
+with h5py.File('joint_space_log.h5', 'r') as f:
+    timestamps = np.array(f['timestamps'])
+    positions  = np.array(f['positions'])   # shape: (N, 7)
+    velocities = np.array(f['velocities'])  # shape: (N, 7)
+    efforts    = np.array(f['efforts'])     # shape: (N, 7)
+
+print(f"{len(timestamps)} samples at ~{1/(timestamps[1]-timestamps[0]):.0f} Hz")
+```
+
+---
+
+## 5. Synchronizing Workstations (Mac VM & Windows WSL2)
+
+**At the start of your session:**
+```bash
+git fetch --all && git pull origin main
+```
+
+**At the end of your session:**
+```bash
+git commit -am "WIP: tuning shoulder_lift PID gains"
+git push
+```
+
+---
+
+## 6. Hardware Integration Roadmap (Platinum Maestro)
+
+When integrating the `maestro_hardware_interface` for the physical arm:
+
+### Step 1: Isolate on a hardware branch
+```bash
+git checkout -b hardware/maestro-integration
+```
+
+### Step 2: URDF hardware injection
+Create `ur5_maestro.urdf` and replace the `gz_ros2_control` plugin:
+```xml
+<hardware>
+    <plugin>maestro_hardware_interface/MaestroSystemHardware</plugin>
+    <param name="serial_port">/dev/ttyACM0</param>
+    <param name="baud_rate">115200</param>
+</hardware>
+```
+
+### Step 3: Hardware launch file
+Create `maestro_sim.launch.py` that boots `robot_state_publisher` and `controller_manager` using `ur5_maestro.urdf` without launching Gazebo.
+
+### Step 4: Document in `docs/hardware_deployment.md`
+Detail USB routing, baud rates, and Maestro terminal commands once validated.
+
 
 ---
 

@@ -11,6 +11,13 @@ controller_manager:
     forward_effort_controller:
       type: forward_command_controller/ForwardCommandController
 
+forward_effort_controller:
+  ros__parameters:
+    joints:
+      ["shoulder_pan_joint1", "shoulder_pan_joint", "shoulder_lift_joint",
+       "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
+    interface_name: effort
+
 ur_manipulator_controller:
   ros__parameters:
     joints: ["shoulder_pan_joint1", "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
