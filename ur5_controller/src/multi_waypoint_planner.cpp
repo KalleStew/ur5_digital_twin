@@ -53,11 +53,10 @@ public:
           continue;
         }
 
-        const double jump_threshold = 0.0;
         const double eef_step = 0.01; // 1 cm resolution
         
-        double fraction = move_group_->computeCartesianPath(waypoints_, eef_step, jump_threshold, calculated_trajectory_);
-        
+        double fraction = move_group_->computeCartesianPath(waypoints_, eef_step, calculated_trajectory_);
+
         if (fraction < 1.0) {
             RCLCPP_WARN(this->get_logger(), "Path Calculation: %.2f%%. The straight line hit the table or joint limits!", fraction * 100.0);
         } else {
