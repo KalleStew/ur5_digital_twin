@@ -1,9 +1,16 @@
 import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess, RegisterEventHandler
+from launch.actions import (
+    AppendEnvironmentVariable,
+    ExecuteProcess,
+    IncludeLaunchDescription,
+    RegisterEventHandler,
+)
 from launch.event_handlers import OnProcessExit
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
+
 
 def generate_launch_description():
     pkg_name = 'ur5_description'
@@ -13,6 +20,10 @@ def generate_launch_description():
     with open(urdf_file, 'r') as infp:
         robot_desc = infp.read()
 
+    # Expose meshes to Gazebo Harmonic resource path
+    workspace_share_dir = os.path.join(pkg_share, '..')
+    env_gz = AppendEnvironmentVariable('GZ_SIM_RESOURCE_PATH', workspace_share_dir)
+
     # 1. Start Robot State Publisher (Provides transforms to the system)
     rsp_node = Node(
         package='robot_state_publisher',
@@ -21,10 +32,14 @@ def generate_launch_description():
         parameters=[{'robot_description': robot_desc}]
     )
 
-    # 2. Start Ignition Gazebo (Empty world)
-    gazebo = ExecuteProcess(
-        cmd=['ign', 'gazebo', '-r', 'empty.sdf'],
-        output='screen'
+    # 2. Start Gazebo Harmonic via ros_gz_sim (replaces legacy 'ign gazebo' command)
+    gazebo = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py'
+            )
+        ),
+        launch_arguments={'gz_args': '-r empty.sdf'}.items(),
     )
 
     # 3. Spawn the robot into Gazebo

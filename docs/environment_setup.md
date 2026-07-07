@@ -1,209 +1,375 @@
 # Development Environment Setup
 
-This guide provides step-by-step instructions for configuring a local machine to run the UR5 Digital Twin and HIL platform.
+This guide provides step-by-step instructions for configuring a machine to run the UR5 Digital Twin on **ROS 2 Jazzy Jalisco** and **Ubuntu 24.04 LTS Noble Numbat**.
 
-The project is designed for:
+**Target Platforms:**
+- Windows 11 with **WSL2** running Ubuntu 24.04
+- Apple Silicon (M1/M2/M3) with an **ARM64 Ubuntu 24.04 virtual machine** (UTM or Parallels)
+- Native Ubuntu 24.04 x86-64
 
-- **Ubuntu 22.04 LTS Jammy Jellyfish**
-- **ROS 2 Humble Hawksbill**
-- **MoveIt 2**
-- **Gazebo / Ignition Gazebo**
-- **ros2_control**
-- **WSL2, native Ubuntu, or an Ubuntu virtual machine**
-
-This guide is written primarily for **Windows users running Ubuntu 22.04 through WSL2**, but the ROS 2 installation and workspace setup steps also apply to native Ubuntu and Ubuntu virtual machines.
+**Stack:**
+- ROS 2 Jazzy Jalisco
+- Gazebo Harmonic (default Jazzy sim)
+- MoveIt 2 (Jazzy release)
+- Eclipse Zenoh middleware (`rmw_zenoh_cpp`)
+- gz_ros2_control
+- Python 3.12, h5py, numpy
 
 ---
 
 ## Table of Contents
 
 1. [Host Platform Configuration](#1-host-platform-configuration)
-2. [ROS 2 Humble Installation](#2-ros-2-humble-installation)
-3. [System and Simulation Dependencies](#3-system-and-simulation-dependencies)
-4. [Python Numerical Package Compatibility](#4-python-numerical-package-compatibility)
-5. [Workspace and Repository Setup](#5-workspace-and-repository-setup)
-6. [Build and Source the Workspace](#6-build-and-source-the-workspace)
-7. [VS Code and Git Source Control Setup](#7-vs-code-and-git-source-control-setup)
-8. [WSL2 Gazebo Graphics Configuration](#8-wsl2-gazebo-graphics-configuration)
-9. [Controller Configuration Path Check](#9-controller-configuration-path-check)
-10. [Environment Verification](#10-environment-verification)
-11. [Running Initial Tests](#11-running-initial-tests)
-12. [Common Troubleshooting](#12-common-troubleshooting)
-13. [Quick Setup Command Summary](#13-quick-setup-command-summary)
+2. [Ubuntu 24.04 First-Boot Setup](#2-ubuntu-2404-first-boot-setup)
+3. [ROS 2 Jazzy Installation](#3-ros-2-jazzy-installation)
+4. [Eclipse Zenoh Middleware](#4-eclipse-zenoh-middleware)
+5. [Gazebo Harmonic & gz_ros2_control](#5-gazebo-harmonic--gz_ros2_control)
+6. [MoveIt 2 (Jazzy)](#6-moveit-2-jazzy)
+7. [Python Research Dependencies](#7-python-research-dependencies)
+8. [Workspace and Repository Setup](#8-workspace-and-repository-setup)
+9. [Build and Source](#9-build-and-source)
+10. [VS Code Setup](#10-vs-code-setup)
+11. [Environment Verification](#11-environment-verification)
+12. [Quick Setup Command Summary](#12-quick-setup-command-summary)
 
 ---
 
-# 1. Host Platform Configuration
+## 1. Host Platform Configuration
 
-Choose the setup that matches your deployment hardware.
+### Option A: Windows 11 — WSL2 (Recommended for Windows)
 
----
+Windows 11 ships with WSLg, which passes GPU and OpenGL through to Linux GUI apps (RViz, Gazebo) without an X11 server.
 
-## Option A: Windows Subsystem for Linux 2, WSL2
+**Step 1: Install Ubuntu 24.04 in WSL2**
 
-This is the recommended option for Windows hosts.
-
-Windows 11 includes WSLg, which allows Linux GUI applications such as RViz and Gazebo to run without manually installing an external X11 server.
-
----
-
-### Step 1: Install Ubuntu 22.04 in WSL2
-
-Open **PowerShell as Administrator** and run:
+Open **PowerShell as Administrator**:
 
 ```powershell
-wsl --install -d Ubuntu-22.04
+wsl --install -d Ubuntu-24.04
 ```
 
-Restart your computer if prompted.
+Restart if prompted. Open **Ubuntu 24.04** from the Start Menu and set your username/password.
 
-After installation, open **Ubuntu 22.04** from the Windows Start Menu.
-
-You will be prompted to create a Linux username and password.
-
-Example:
-
-```text
-Enter new UNIX username: kstew
-New password:
-Retype new password:
-```
-
-The password will not visibly appear while typing. This is normal.
-
----
-
-### Step 2: Confirm Ubuntu version
-
-In the Ubuntu terminal, run:
+**Step 2: Confirm the version**
 
 ```bash
 lsb_release -a
+# Expected: Ubuntu 24.04 LTS (Noble Numbat)
 ```
 
-Expected output should include:
+**Step 3: Enable WSLg GPU (verify graphics passthrough)**
 
-```text
-Release: 22.04
-Codename: jammy
+```bash
+# Verify GPU is visible inside WSL2
+glxinfo | grep "OpenGL renderer"
+# Should show your Windows GPU (NVIDIA/AMD/Intel), not llvmpipe
 ```
 
-ROS 2 Humble is intended for Ubuntu 22.04 Jammy.
+If it shows `llvmpipe`, update your Windows GPU driver to a WSL2-compatible version (NVIDIA ≥ 515, AMD ≥ 22.20, Intel ≥ 101).
 
 ---
 
-### Step 3: Update Ubuntu
+### Option B: Apple Silicon (ARM64) — UTM or Parallels VM
 
-Run:
+ROS 2 Jazzy has Tier 1 support for `linux/arm64`. Use **UTM** (free) or **Parallels Desktop** to create an ARM64 Ubuntu 24.04 server VM, then install a desktop:
 
 ```bash
+# After first boot, install minimal desktop for RViz/Gazebo rendering
+sudo apt update && sudo apt install -y ubuntu-desktop-minimal
+```
+
+**UTM VM Settings (recommended):**
+- Architecture: ARM64 (VirtIO)
+- RAM: ≥ 8 GB
+- CPU: ≥ 4 cores
+- Display: VirtIO GPU (enables hardware acceleration)
+- Shared Clipboard: On
+
+**Gazebo rendering on ARM64:** Gazebo Harmonic defaults to the `ogre2` render engine. On ARM64 VMs, add `--render-engine ogre` if `ogre2` crashes:
+
+```bash
+gz sim --render-engine ogre -r empty.sdf
+```
+
+---
+
+## 2. Ubuntu 24.04 First-Boot Setup
+
+Run these on any fresh Ubuntu 24.04 install before proceeding:
+
+```bash
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y \
+  curl gnupg2 lsb-release software-properties-common \
+  build-essential git python3-pip python3-colcon-common-extensions \
+  python3-rosdep python3-vcstool
+
+# Initialize rosdep
+sudo rosdep init
+rosdep update
+```
+
+---
+
+## 3. ROS 2 Jazzy Installation
+
+```bash
+# Add ROS 2 apt repository
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+  -o /usr/share/keyrings/ros-archive-keyring.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
+  http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" \
+  | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+
 sudo apt update
-sudo apt upgrade -y
+
+# Install the full desktop (RViz, rqt, demo nodes)
+sudo apt install -y ros-jazzy-desktop
+
+# Install ros2_control stack
+sudo apt install -y \
+  ros-jazzy-ros2-control \
+  ros-jazzy-ros2-controllers \
+  ros-jazzy-controller-manager
 ```
 
----
-
-### Step 4: Allocate enough memory to WSL2
-
-Gazebo, RViz, and MoveIt can be memory intensive. It is recommended to allocate at least **8 GB of RAM** to WSL2.
-
-On Windows, create or edit this file:
-
-```text
-C:\Users\<YourWindowsUsername>\.wslconfig
-```
-
-Example `.wslconfig`:
-
-```ini
-[wsl2]
-memory=8GB
-processors=4
-swap=4GB
-localhostForwarding=true
-```
-
-If your machine has sufficient resources, this is better:
-
-```ini
-[wsl2]
-memory=12GB
-processors=6
-swap=4GB
-localhostForwarding=true
-```
-
-After saving the file, restart WSL from PowerShell:
-
-```powershell
-wsl --shutdown
-```
-
-Then reopen Ubuntu 22.04.
-
----
-
-### Step 5: Confirm Linux GUI support
-
-Install a simple GUI test package:
+**Add to `~/.bashrc`** (permanent sourcing):
 
 ```bash
-sudo apt install x11-apps -y
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+source ~/.bashrc
 ```
-
-Run:
-
-```bash
-xeyes
-```
-
-If a small window opens, WSLg GUI support is working.
-
-Close the `xeyes` window when finished.
 
 ---
 
-### Important WSL filesystem note
+## 4. Eclipse Zenoh Middleware
 
-Keep the ROS 2 workspace inside the Linux filesystem:
+### Why Zenoh instead of FastDDS?
 
-```text
-/home/<username>/ros2_ws
+ROS 2 Jazzy promotes **Eclipse Zenoh** to Tier 1 middleware status. For this HIL system, Zenoh has critical advantages over FastDDS:
+
+| Property | FastDDS | Zenoh |
+|---|---|---|
+| Discovery | Multicast UDP (unreliable in VMs/WSL2) | Brokerless P2P (works through NAT and hypervisors) |
+| High-freq arrays | Copies data multiple times (heap pressure) | Zero-copy shared memory transport |
+| 100 Hz Float64MultiArray | Jitter under VM load | Consistent sub-1ms latency |
+| WSL2 compatibility | Multicast often blocked by Hyper-V | TCP/IP transport, always works |
+
+For this system — pushing 7-element torque arrays at 100 Hz through a VM boundary — Zenoh eliminates the discovery failures and message drops that FastDDS exhibits under VM scheduler load.
+
+### Installation
+
+```bash
+# Install rmw_zenoh_cpp
+sudo apt install -y ros-jazzy-rmw-zenoh-cpp
+
+# Verify installation
+ros2 pkg list | grep zenoh
+# Expected: rmw_zenoh_cpp
 ```
 
-Recommended:
+### Configure as Default Middleware
 
-```text
-/home/kstew/ros2_ws
+Add to `~/.bashrc`:
+
+```bash
+echo "export RMW_IMPLEMENTATION=rmw_zenoh_cpp" >> ~/.bashrc
+source ~/.bashrc
 ```
 
-Avoid building the workspace inside:
+### Verify Zenoh is Active
 
-```text
-/mnt/c/Users/...
+```bash
+# In terminal 1: start a publisher
+ros2 topic pub /test std_msgs/msg/String "data: 'zenoh_test'" --rate 1 &
+
+# In terminal 2: confirm reception
+ros2 topic echo /test
+# Should print: data: zenoh_test
+
+kill %1
 ```
-
-Building under `/mnt/c` can cause slow builds, symbolic link problems, and permission issues.
 
 ---
 
-## Option B: Dedicated Ubuntu Virtual Machine
+## 5. Gazebo Harmonic & gz_ros2_control
 
-If using VMware, VirtualBox, or Parallels, install Ubuntu 22.04 Desktop.
-
-Recommended VM settings:
-
-- **RAM:** 8 GB minimum, 16 GB recommended
-- **CPU:** 4 cores minimum
-- **Disk:** 40 GB minimum, 60 GB recommended
-- **Graphics:** Enable 3D acceleration
-- **Video memory:** Maximize available video memory
-
-After installing Ubuntu, update packages:
+Jazzy's default simulator is **Gazebo Harmonic** (formerly Ignition Harmonic). The legacy `ignition-*` packages are replaced by `gz-*`.
 
 ```bash
-sudo apt update
-sudo apt upgrade -y
+# Install Gazebo Harmonic via ros_gz bridge (Jazzy default)
+sudo apt install -y \
+  ros-jazzy-ros-gz \
+  ros-jazzy-ros-gz-sim \
+  ros-jazzy-ros-gz-bridge \
+  ros-jazzy-gz-ros2-control
+
+# Verify Gazebo binary
+gz sim --version
+# Expected: Gazebo Sim, version 8.x.x (Harmonic)
+```
+
+**WSL2 Note:** If Gazebo crashes on first launch with an OpenGL error, force software rendering:
+
+```bash
+export LIBGL_ALWAYS_SOFTWARE=1
+gz sim -r empty.sdf
+```
+
+---
+
+## 6. MoveIt 2 (Jazzy)
+
+```bash
+sudo apt install -y \
+  ros-jazzy-moveit \
+  ros-jazzy-moveit-ros-move-group \
+  ros-jazzy-moveit-planners \
+  ros-jazzy-moveit-kinematics \
+  ros-jazzy-moveit-simple-controller-manager \
+  ros-jazzy-moveit-configs-utils \
+  ros-jazzy-moveit-ros-visualization
+
+# Verify MoveItConfigsBuilder is importable
+python3 -c "from moveit_configs_utils import MoveItConfigsBuilder; print('MoveIt OK')"
+```
+
+---
+
+## 7. Python Research Dependencies
+
+The HIL scripts use `h5py` for HDF5 telemetry logging and `numpy` for torque array construction:
+
+```bash
+# System packages (preferred to avoid venv conflicts with rclpy)
+sudo apt install -y python3-h5py python3-numpy python3-scipy
+
+# Verify HDF5 write capability
+python3 -c "import h5py, numpy; print('h5py:', h5py.__version__)"
+```
+
+---
+
+## 8. Workspace and Repository Setup
+
+```bash
+mkdir -p ~/ros2_ws/src
+cd ~/ros2_ws/src
+
+git clone https://github.com/KalleStew/ur5_digital_twin.git
+
+# Install all declared ROS 2 package dependencies
+cd ~/ros2_ws
+rosdep install --from-paths src --ignore-src -r -y
+```
+
+---
+
+## 9. Build and Source
+
+```bash
+cd ~/ros2_ws
+
+# Build (symlink-install preserves Python script editability without rebuilds)
+colcon build --symlink-install
+
+# Source the workspace overlay
+source install/setup.bash
+
+# Add to ~/.bashrc for permanent effect
+echo "source ~/ros2_ws/install/setup.bash" >> ~/.bashrc
+```
+
+**Expected build output:** All three packages (`ur5_description`, `ur5_moveit_config`, `ur5_controller`) should show `[Finished]` with no errors.
+
+---
+
+## 10. VS Code Setup
+
+Install the Remote - WSL or Remote - SSH extension to edit files directly in the Linux environment:
+
+```bash
+# Install VS Code CLI helper inside WSL2/VM
+sudo snap install --classic code
+```
+
+**Recommended Extensions:**
+- `ms-vscode.cpptools` — C++ IntelliSense for the planner node
+- `ms-python.python` — Python linting for HIL scripts
+- `ms-vscode-remote.remote-wsl` — (Windows only) WSL filesystem integration
+- `twxs.cmake` — CMakeLists.txt syntax highlighting
+
+---
+
+## 11. Environment Verification
+
+Run this verification sequence after completing setup:
+
+```bash
+# 1. Confirm ROS 2 Jazzy
+ros2 --version
+# Expected: ros2 cli version X.X.X (Jazzy)
+
+# 2. Confirm Zenoh is the active RMW
+echo $RMW_IMPLEMENTATION
+# Expected: rmw_zenoh_cpp
+
+# 3. Confirm Gazebo Harmonic
+gz sim --version | head -1
+# Expected: Gazebo Sim, version 8.x
+
+# 4. Confirm gz_ros2_control is installed
+ros2 pkg list | grep gz_ros2_control
+# Expected: gz_ros2_control
+
+# 5. Confirm workspace packages are found
+ros2 pkg list | grep ur5
+# Expected: ur5_controller  ur5_description  ur5_moveit_config
+
+# 6. Launch the full simulation
+ros2 launch ur5_moveit_config gazebo_sim.launch.py
+# Expected: Gazebo opens, arm spawns in candle_pose (vertical), RViz opens with MoveIt plugin
+```
+
+---
+
+## 12. Quick Setup Command Summary
+
+```bash
+# ── Ubuntu 24.04 base ───────────────────────────────────────────────────────
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl gnupg2 build-essential git python3-pip \
+  python3-colcon-common-extensions python3-rosdep
+
+# ── ROS 2 Jazzy ─────────────────────────────────────────────────────────────
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key \
+  -o /usr/share/keyrings/ros-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] \
+  http://packages.ros.org/ros2/ubuntu noble main" \
+  | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+sudo apt update && sudo apt install -y ros-jazzy-desktop
+
+# ── Middleware + Simulation + MoveIt ────────────────────────────────────────
+sudo apt install -y \
+  ros-jazzy-rmw-zenoh-cpp \
+  ros-jazzy-ros-gz ros-jazzy-ros-gz-sim ros-jazzy-ros-gz-bridge \
+  ros-jazzy-gz-ros2-control \
+  ros-jazzy-ros2-control ros-jazzy-ros2-controllers \
+  ros-jazzy-moveit ros-jazzy-moveit-configs-utils \
+  python3-h5py python3-numpy
+
+# ── ~/.bashrc additions ──────────────────────────────────────────────────────
+echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+echo "export RMW_IMPLEMENTATION=rmw_zenoh_cpp" >> ~/.bashrc
+echo "source ~/ros2_ws/install/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+
+# ── Workspace ────────────────────────────────────────────────────────────────
+mkdir -p ~/ros2_ws/src && cd ~/ros2_ws/src
+git clone https://github.com/KalleStew/ur5_digital_twin.git
+cd ~/ros2_ws && rosdep install --from-paths src --ignore-src -r -y
+colcon build --symlink-install && source install/setup.bash
 ```
 
 ---

@@ -1,8 +1,8 @@
 #include <rclcpp/rclcpp.hpp>
-#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/move_group_interface/move_group_interface.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
 #include <moveit_msgs/msg/display_trajectory.hpp>
-#include <moveit/robot_state/conversions.h>
+#include <moveit/robot_state/conversions.hpp>
 #include <thread>
 #include <iostream>
 #include <fstream>
