@@ -21,6 +21,11 @@ The first step is to boot the core physics engine, the visualization environment
 ros2 launch ur5_moveit_config gazebo_sim.launch.py
 ```
 
+If you already have a shared Zenoh router running in another terminal, disable the local router started by this launch file:
+```bash
+ros2 launch ur5_moveit_config gazebo_sim.launch.py start_zenoh_router:=false
+```
+
 **What this does:**
 * Spawns the physical URDF model inside the Gazebo physics engine.
 * Launches RViz2 for 3D trajectory visualization.

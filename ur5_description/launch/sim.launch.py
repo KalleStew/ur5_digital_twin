@@ -3,7 +3,6 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     AppendEnvironmentVariable,
-    ExecuteProcess,
     IncludeLaunchDescription,
     RegisterEventHandler,
 )
@@ -16,9 +15,14 @@ def generate_launch_description():
     pkg_name = 'ur5_description'
     pkg_share = get_package_share_directory(pkg_name)
     urdf_file = os.path.join(pkg_share, 'urdf', 'ur5.urdf')
+    controller_yaml = os.path.join(
+        get_package_share_directory('ur5_moveit_config'),
+        'config',
+        'ros2_controllers.yaml',
+    )
 
     with open(urdf_file, 'r') as infp:
-        robot_desc = infp.read()
+        robot_desc = infp.read().replace('__ROS2_CONTROLLERS_YAML__', controller_yaml)
 
     # Expose meshes to Gazebo Harmonic resource path
     workspace_share_dir = os.path.join(pkg_share, '..')
@@ -50,21 +54,26 @@ def generate_launch_description():
         output='screen'
     )
 
-    # 4. Load the Joint State Broadcaster
-    load_joint_state_broadcaster = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active', 'joint_state_broadcaster'],
-        output='screen'
+    # 4. Spawn the Joint State Broadcaster
+    load_joint_state_broadcaster = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['joint_state_broadcaster', '--controller-manager-timeout', '30'],
+        output='screen',
     )
 
-    # 5. Load the Arm Controller
-    load_arm_controller = ExecuteProcess(
-        cmd=['ros2', 'control', 'load_controller', '--set-state', 'active', 'arm_controller'],
-        output='screen'
+    # 5. Spawn the MoveIt trajectory controller
+    load_arm_controller = Node(
+        package='controller_manager',
+        executable='spawner',
+        arguments=['ur_manipulator_controller', '--controller-manager-timeout', '30'],
+        output='screen',
     )
 
     # We use event handlers to ensure controllers load ONLY AFTER the robot is fully spawned
     return LaunchDescription([
         rsp_node,
+        env_gz,
         gazebo,
         spawn_entity,
         RegisterEventHandler(

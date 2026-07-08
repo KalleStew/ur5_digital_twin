@@ -88,6 +88,11 @@ killall -9 ruby
 ros2 daemon stop && ros2 daemon start
 ```
 
+If your router is managed externally, launch the stack with the embedded router disabled:
+```bash
+ros2 launch ur5_moveit_config gazebo_sim.launch.py start_zenoh_router:=false
+```
+
 ### Symptom: Reverting to FastDDS temporarily (debugging only)
 
 ```bash

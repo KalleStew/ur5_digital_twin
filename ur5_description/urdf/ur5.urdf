@@ -209,12 +209,19 @@
     <!-- Gazebo Harmonic: World plugin that boots the controller_manager and
          connects gz_ros2_control hardware interfaces. Must be present for
          the spawner nodes in the launch file to find /controller_manager. -->
-    <gazebo>
+    <!-- <gazebo>
         <plugin filename="gz_ros2_control-system"
                 name="gz_ros2_control::GazeboSimROS2ControlPlugin">
             <ros>
                 <remapping>~/robot_description:=/robot_description</remapping>
             </ros>
+        </plugin>
+    </gazebo> -->
+    
+    <!-- New Gazebo plugin for ROS 2 control -->
+    <gazebo>
+        <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
+            <parameters>__ROS2_CONTROLLERS_YAML__</parameters>
         </plugin>
     </gazebo>
 
@@ -310,13 +317,6 @@
             <state_interface name="effort"/>
         </joint>
     </ros2_control>
-    
-    <gazebo>
-        <plugin filename="ign_ros2_control-system" name="ign_ros2_control::IgnitionROS2ControlPlugin">
-            <!-- ABSOLUTE PATH FIX: Bypasses Gazebo's broken $(find) parser -->
-            <parameters>/home/kallestewart/ros2_ws/src/ur5_digital_twin/ur5_moveit_config/config/ros2_controllers.yaml</parameters>
-        </plugin>
-    </gazebo>
 
     <gazebo reference="table_link">
         <material>Gazebo/Wood</material>
