@@ -681,8 +681,10 @@ cat << 'EOF' >> ~/.bashrc
 # ROS 2 workspace shortcuts
 alias ws='cd ~/ros2_ws'
 alias repo='cd ~/ros2_ws/src/ur5_digital_twin'
-alias build_ws='cd ~/ros2_ws && colcon build --symlink-install'
+alias build='cd ~/ros2_ws && colcon build --symlink-install && source install/setup.bash'
+alias cbuild='cd ~/ros2_ws && rm -rf build/ install/ log/ && colcon build --symlink-install && source install/setup.bash'
 alias src_ws='source /opt/ros/jazzy/setup.bash && source ~/ros2_ws/install/setup.bash'
+alias run_sim='ros2 launch ur5_moveit_config gazebo_sim.launch.py' 
 EOF
 
 source ~/.bashrc
