@@ -56,7 +56,7 @@ For advanced research, fault-detection, or Hardware-in-the-Loop (HIL) testing, o
 
 **Command:**
 ```bash
-python3 unified_control.py
+python3 interactive_control.py
 ```
 
 **What this does:**
