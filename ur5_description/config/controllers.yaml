@@ -10,7 +10,7 @@ controller_manager:
 
 arm_controller:
   ros__parameters:
-    jjoints:
+    joints:
       - shoulder_pan_joint1
       - shoulder_pan_joint
       - shoulder_lift_joint
