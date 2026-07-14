@@ -7,6 +7,12 @@ log/
 *.csv
 *.h5
 
+# Default Path Planning Data
+!/ur5_controller/src/waypoints/default_cartesian.csv
+!/ur5_controller/src/waypoints/default_joint.csv
+
+# Simuation Data Save Directory
+!/ur5_controller/src/data/
 
 # Python
 __pycache__/
