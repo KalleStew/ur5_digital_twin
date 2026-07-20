@@ -15,6 +15,7 @@ def generate_launch_description():
     pkg_name = 'ur5_description'
     pkg_share = get_package_share_directory(pkg_name)
     urdf_file = os.path.join(pkg_share, 'urdf', 'ur5.urdf')
+    world_file = os.path.join(pkg_share, 'worlds', 'empty.sdf')
     controller_yaml = os.path.join(
         get_package_share_directory('ur5_moveit_config'),
         'config',
@@ -43,7 +44,7 @@ def generate_launch_description():
                 get_package_share_directory('ros_gz_sim'), 'launch', 'gz_sim.launch.py'
             )
         ),
-        launch_arguments={'gz_args': '-r empty.sdf'}.items(),
+        launch_arguments={'gz_args': f'-r {world_file}'}.items(),
     )
 
     # 3. Spawn the robot into Gazebo

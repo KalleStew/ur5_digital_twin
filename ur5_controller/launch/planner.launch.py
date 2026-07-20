@@ -9,8 +9,6 @@ def generate_launch_description():
         package="ur5_controller",
         executable="multi_waypoint_planner",
         output="screen",
-        # Opens a new terminal
-        prefix="gnome-terminal --", 
         parameters=[
             moveit_config.robot_description_kinematics,
             {'use_sim_time': True}
