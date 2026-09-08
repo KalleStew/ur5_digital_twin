@@ -16,6 +16,8 @@
   <depend>moveit_msgs</depend>
   <depend>std_msgs</depend>
   <depend>controller_manager_msgs</depend>
+  <exec_depend>moveit_configs_utils</exec_depend>
+  <exec_depend>ur5_moveit_config</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>

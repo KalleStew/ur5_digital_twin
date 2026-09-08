@@ -9,10 +9,19 @@ def generate_launch_description():
         package="ur5_controller",
         executable="multi_waypoint_planner",
         output="screen",
+        emulate_tty=True,
         parameters=[
+            moveit_config.robot_description,
+            moveit_config.robot_description_semantic,
             moveit_config.robot_description_kinematics,
+            moveit_config.planning_pipelines,
+            moveit_config.joint_limits,
+            moveit_config.trajectory_execution,
+            moveit_config.planning_scene_monitor,
             {'use_sim_time': True}
         ],
     )
 
-    return LaunchDescription([planner_node])
+    return LaunchDescription([
+        planner_node,
+    ])

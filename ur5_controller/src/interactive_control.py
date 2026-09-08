@@ -7,14 +7,33 @@ from control_msgs.msg import JointTolerance
 from trajectory_msgs.msg import JointTrajectoryPoint
 from sensor_msgs.msg import JointState
 from moveit_msgs.srv import GetPositionIK
-from geometry_msgs.msg import PoseStamped
 import csv
 import os
 import threading
-import numpy as np
+import importlib
 import math
-import h5py
-from scipy.signal import butter, filtfilt
+
+np = None
+h5py = None
+butter = None
+filtfilt = None
+
+try:
+    np = importlib.import_module('numpy')
+except ImportError:
+    pass
+
+try:
+    h5py = importlib.import_module('h5py')
+except ImportError:
+    pass
+
+try:
+    scipy_signal = importlib.import_module('scipy.signal')
+    butter = scipy_signal.butter
+    filtfilt = scipy_signal.filtfilt
+except ImportError:
+    pass
 
 class InteractiveHILController(Node):
     def __init__(self):
@@ -43,7 +62,21 @@ class InteractiveHILController(Node):
         
         # Launch the interactive CLI in a background thread to prevent ROS executor deadlocks
         self.control_thread = threading.Thread(target=self.run_interactive_cli)
+        self.control_thread.daemon = True
         self.control_thread.start()
+
+    @staticmethod
+    def parse_time_to_ros_duration(time_value):
+        """Convert float/int seconds into ROS duration sec + nanosec components."""
+        total_seconds = max(0.0, float(time_value))
+        sec = int(total_seconds)
+        nanosec = int(round((total_seconds - sec) * 1e9))
+
+        # Clamp rounding spillover into the seconds field.
+        if nanosec >= 1_000_000_000:
+            sec += 1
+            nanosec -= 1_000_000_000
+        return sec, nanosec
 
     def run_interactive_cli(self):
         """ The main interactive loop run in the background thread. """
@@ -66,7 +99,8 @@ class InteractiveHILController(Node):
         filepath = os.path.join(os.getcwd(), 'waypoints', filename)
         if not os.path.exists(filepath):
             self.get_logger().error(f"File not found: {filepath}")
-            return rclpy.shutdown()
+            rclpy.shutdown()
+            return
 
         # 3. Load & Process Waypoints
         self.get_logger().info(f"Loading waypoints from: {filename}")
@@ -77,7 +111,8 @@ class InteractiveHILController(Node):
 
         if not points:
             self.get_logger().error("No valid waypoints loaded. Aborting.")
-            return rclpy.shutdown()
+            rclpy.shutdown()
+            return
 
         # 4. Connect to Action Server
         self.get_logger().info('Connecting to Gazebo Trajectory Controller...')
@@ -102,7 +137,10 @@ class InteractiveHILController(Node):
         future.add_done_callback(self.goal_response_callback)
 
         # Hard timeout calculation (longest waypoint time + 10s buffer)
-        max_time = max([pt.time_from_start.sec for pt in points]) + 10.0
+        max_time = max([
+            pt.time_from_start.sec + (pt.time_from_start.nanosec * 1e-9)
+            for pt in points
+        ]) + 10.0
         self.get_logger().info(f'Execution started. Timeout set to {max_time}s.')
         
         finished = self.trajectory_event.wait(timeout=max_time)
@@ -129,8 +167,13 @@ class InteractiveHILController(Node):
             next(reader) # Skip Header
             for row in reader:
                 if not row: continue
+                if len(row) < 8:
+                    self.get_logger().warn(f"Skipping malformed joint waypoint row: {row}")
+                    continue
                 pt = JointTrajectoryPoint()
-                pt.time_from_start.sec = int(float(row[0]))
+                sec, nanosec = self.parse_time_to_ros_duration(row[0])
+                pt.time_from_start.sec = sec
+                pt.time_from_start.nanosec = nanosec
                 pt.positions = [float(x) for x in row[1:8]]
                 pt.velocities = [0.0] * 7 # Stop at each waypoint
                 points.append(pt)
@@ -146,27 +189,39 @@ class InteractiveHILController(Node):
             next(reader) # Skip Header
             for row in reader:
                 if not row: continue
+                if len(row) < 7:
+                    self.get_logger().warn(f"Skipping malformed cartesian waypoint row: {row}")
+                    continue
                 
-                time_sec = int(float(row[0]))
+                time_sec = float(row[0])
                 x, y, z = float(row[1]), float(row[2]), float(row[3])
                 roll, pitch, yaw = float(row[4]), float(row[5]), float(row[6])
                 
                 # Math: Convert Euler to Quaternion
-                qx = np.sin(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) - np.cos(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
-                qy = np.cos(roll/2) * np.sin(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.cos(pitch/2) * np.sin(yaw/2)
-                qz = np.cos(roll/2) * np.cos(pitch/2) * np.sin(yaw/2) - np.sin(roll/2) * np.sin(pitch/2) * np.cos(yaw/2)
-                qw = np.cos(roll/2) * np.cos(pitch/2) * np.cos(yaw/2) + np.sin(roll/2) * np.sin(pitch/2) * np.sin(yaw/2)
+                qx = math.sin(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) - math.cos(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)
+                qy = math.cos(roll/2) * math.sin(pitch/2) * math.cos(yaw/2) + math.sin(roll/2) * math.cos(pitch/2) * math.sin(yaw/2)
+                qz = math.cos(roll/2) * math.cos(pitch/2) * math.sin(yaw/2) - math.sin(roll/2) * math.sin(pitch/2) * math.cos(yaw/2)
+                qw = math.cos(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) + math.sin(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)
+
+                # Normalize to protect IK from numeric drift when converting from Euler angles.
+                q_norm = math.sqrt((qx * qx) + (qy * qy) + (qz * qz) + (qw * qw))
+                if q_norm <= 1e-9:
+                    self.get_logger().error(f"Invalid orientation for waypoint at {time_sec}s. Skipping.")
+                    continue
+                qx, qy, qz, qw = qx / q_norm, qy / q_norm, qz / q_norm, qw / q_norm
 
                 # Query the IK Service
                 joint_positions = self.solve_ik(x, y, z, qx, qy, qz, qw)
                 if joint_positions:
                     pt = JointTrajectoryPoint()
-                    pt.time_from_start.sec = time_sec
+                    sec, nanosec = self.parse_time_to_ros_duration(time_sec)
+                    pt.time_from_start.sec = sec
+                    pt.time_from_start.nanosec = nanosec
                     pt.positions = joint_positions
                     pt.velocities = [0.0] * 7
                     points.append(pt)
                 else:
-                    self.get_logger().error(f"IK Failed for Waypoint at {time_sec}s. Skipping.")
+                    self.get_logger().error(f"IK failed for waypoint at {time_sec}s. Skipping.")
         return points
 
     def solve_ik(self, x, y, z, qx, qy, qz, qw):
@@ -191,9 +246,11 @@ class InteractiveHILController(Node):
             
         future = self.ik_client.call_async(req)
         future.add_done_callback(ik_callback)
-        self.ik_event.wait() # Pause thread until IK response returns
+        if not self.ik_event.wait(timeout=2.0):
+            self.get_logger().error("Timed out waiting for IK response.")
+            return None
 
-        if self.ik_result_msg.error_code.val == 1: # SUCCESS
+        if self.ik_result_msg and self.ik_result_msg.error_code.val == 1: # SUCCESS
             # Return exactly 7 joints to match our action client expectations
             return list(self.ik_result_msg.solution.joint_state.position)[:7]
         return None
@@ -209,7 +266,7 @@ class InteractiveHILController(Node):
             if name in msg.name:
                 idx = msg.name.index(name)
                 row.extend([msg.position[idx], msg.velocity[idx]])
-                row.append(msg.effort[idx] if len(msg.effort) > idx else float('nan'))
+                row.append(msg.effort[idx] if len(msg.effort) > idx else 0.0)
             else:
                 row.extend([0.0, 0.0, 0.0])
         self.telemetry_data.append(row)
@@ -228,51 +285,65 @@ class InteractiveHILController(Node):
         self.trajectory_event.set()
 
     def export_data(self, filename_prefix):
-        if len(self.telemetry_data) < 10: 
+        if len(self.telemetry_data) < 2:
             self.get_logger().error("Not enough data to export.")
-            return rclpy.shutdown()
-            
-        data_matrix = np.array(self.telemetry_data)
-        
-        # Butterworth Filter (Zero-Phase) to clean physics chatter
-        b, a = butter(N=3, Wn=4.0/50.0, btype='low')
-        filtered_data = np.copy(data_matrix)
-        
-        for i in range(len(self.joint_names)):
-            vel_col = (i * 3) + 2
-            eff_col = (i * 3) + 3
-            
-            filtered_data[:, vel_col] = filtfilt(b, a, data_matrix[:, vel_col])
-            
-            eff_raw = data_matrix[:, eff_col]
-            if not np.isnan(eff_raw).all():
-                eff_raw = np.nan_to_num(eff_raw) 
-                filtered_data[:, eff_col] = filtfilt(b, a, eff_raw)
+            rclpy.shutdown()
+            return
         
         # Save to the specific 'data' directory
         data_dir = os.path.join(os.getcwd(), 'data')
+        os.makedirs(data_dir, exist_ok=True)
         csv_filepath = os.path.join(data_dir, f'{filename_prefix}_filtered.csv')
         h5_filepath = os.path.join(data_dir, f'{filename_prefix}_filtered.h5')
 
-        # Export CSV
+        # Export CSV (always available)
         headers = ['timestamp_sec']
         for name in self.joint_names:
             headers.extend([f'{name}_pos', f'{name}_vel', f'{name}_torque'])
+
+        filtered_data = None
+        if np is None:
+            self.get_logger().warn("numpy is unavailable. Exporting unfiltered telemetry only.")
+        else:
+            data_matrix = np.array(self.telemetry_data)
+            filtered_data = np.copy(data_matrix)
+
+            # Butterworth filtering is optional and only applied when scipy is present.
+            if butter is not None and filtfilt is not None and len(self.telemetry_data) >= 10:
+                b, a = butter(N=3, Wn=4.0 / 50.0, btype='low')
+                for i in range(len(self.joint_names)):
+                    vel_col = (i * 3) + 2
+                    eff_col = (i * 3) + 3
+
+                    filtered_data[:, vel_col] = filtfilt(b, a, data_matrix[:, vel_col])
+
+                    eff_raw = data_matrix[:, eff_col]
+                    if not np.isnan(eff_raw).all():
+                        eff_raw = np.nan_to_num(eff_raw)
+                        filtered_data[:, eff_col] = filtfilt(b, a, eff_raw)
+            elif butter is None or filtfilt is None:
+                self.get_logger().warn("scipy is unavailable. Exporting unfiltered telemetry.")
             
         with open(csv_filepath, 'w', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(headers)
-            writer.writerows(filtered_data)
+            if filtered_data is None:
+                writer.writerows(self.telemetry_data)
+            else:
+                writer.writerows(filtered_data)
 
-        # Export HDF5
-        with h5py.File(h5_filepath, 'w') as hf:
-            hf.create_dataset('timestamp_sec', data=filtered_data[:, 0])
-            for i, name in enumerate(self.joint_names):
-                hf.create_dataset(f'position/{name}', data=filtered_data[:, (i*3)+1])
-                hf.create_dataset(f'velocity/{name}', data=filtered_data[:, (i*3)+2])
-                hf.create_dataset(f'effort/{name}', data=filtered_data[:, (i*3)+3])
-
-        print(f"\n[SUCCESS] Files saved to:\n- {csv_filepath}\n- {h5_filepath}")
+        # Export HDF5 only when dependencies are available.
+        if h5py is not None and filtered_data is not None:
+            with h5py.File(h5_filepath, 'w') as hf:
+                hf.create_dataset('timestamp_sec', data=filtered_data[:, 0])
+                for i, name in enumerate(self.joint_names):
+                    hf.create_dataset(f'position/{name}', data=filtered_data[:, (i*3)+1])
+                    hf.create_dataset(f'velocity/{name}', data=filtered_data[:, (i*3)+2])
+                    hf.create_dataset(f'effort/{name}', data=filtered_data[:, (i*3)+3])
+            print(f"\n[SUCCESS] Files saved to:\n- {csv_filepath}\n- {h5_filepath}")
+        else:
+            self.get_logger().warn("h5py is unavailable. Skipping HDF5 export.")
+            print(f"\n[SUCCESS] File saved to:\n- {csv_filepath}")
         rclpy.shutdown()
 
 def main(args=None):
