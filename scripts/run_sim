@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# Operator alias for GUI + RViz bring-up (Zenoh + ogre on ARM64).
+# Prefer: ur5 simgui   |   or add scripts/ to PATH so `run_sim` resolves here.
+# Headless path remains: ur5 sim
+set -eo pipefail
+_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+exec "${_ROOT}/ur5" simgui "$@"

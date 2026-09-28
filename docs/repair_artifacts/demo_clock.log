@@ -1,0 +1,2 @@
+[INFO] [1790182811.140741082] [ros_gz_bridge]: Creating GZ->ROS Bridge: [/clock (gz.msgs.Clock) -> /clock (rosgraph_msgs/msg/Clock)] (Lazy 0)
+[ros2run]: Killed

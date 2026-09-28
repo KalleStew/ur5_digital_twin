@@ -1,0 +1,301 @@
+publisher: beginning loop
+publishing #1: std_msgs.msg.Float64MultiArray(layout=std_msgs.msg.MultiArrayLayout(dim=[], data_offset=0), data=[3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+=== index 0 cmd [3.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] ===
+header:
+  stamp:
+    sec: 17
+    nanosec: 848000000
+  frame_id: base_link
+name:
+- elbow_joint
+- shoulder_lift_joint
+- shoulder_pan_joint
+- shoulder_pan_joint1
+- wrist_1_joint
+- wrist_2_joint
+- wrist_3_joint
+position:
+- -0.00020973468957644382
+- -3.289430629809699
+- 1.7340813036416766e-05
+- 4.010203863137725e-12
+- -6.468809513264369e-10
+- 1.0801319516654734e-10
+- -3.348523908626007e-10
+velocity:
+- -1.5725306473646228e-11
+- -0.00015647874492156696
+- 5.6784368873685764e-12
+- 2.4176903968414765e-12
+- -5.863572127839944e-11
+- 7.653380099809093e-12
+- -3.3484070550982015e-11
+effort:
+- 2.3677185312437192
+- 15.255306749732064
+- -12.323721321657827
+- 9.043812082687452e-05
+- 0.5561874931145586
+- -0.021289648282093426
+- -0.0028987695358301106
+---
+
+publisher: beginning loop
+publishing #1: std_msgs.msg.Float64MultiArray(layout=std_msgs.msg.MultiArrayLayout(dim=[], data_offset=0), data=[0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+=== index 1 cmd [0.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0] ===
+header:
+  stamp:
+    sec: 20
+    nanosec: 479000000
+  frame_id: base_link
+name:
+- elbow_joint
+- shoulder_lift_joint
+- shoulder_pan_joint
+- shoulder_pan_joint1
+- wrist_1_joint
+- wrist_2_joint
+- wrist_3_joint
+position:
+- -0.00020973473060682
+- -3.2900271553803173
+- 0.003328076313708657
+- 6.8224142907727185e-12
+- -8.030698254730821e-10
+- 1.3155319790767418e-10
+- -4.205593705705945e-10
+velocity:
+- -1.5497454014523626e-11
+- -8.812021624267797e-05
+- 0.0005947237620856092
+- 3.871339013250541e-14
+- -5.996052959700293e-11
+- 9.948975887921763e-12
+- -3.1898245113001766e-11
+effort:
+- 2.36093677009493
+- 15.229211778428864
+- -12.182517530000359
+- -0.0007035642009356194
+- 0.5561387973898326
+- -0.021289159341836162
+- -0.002898533699140742
+---
+
+publisher: beginning loop
+publishing #1: std_msgs.msg.Float64MultiArray(layout=std_msgs.msg.MultiArrayLayout(dim=[], data_offset=0), data=[0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0])
+
+=== index 2 cmd [0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 0.0] ===
+header:
+  stamp:
+    sec: 23
+    nanosec: 88000000
+  frame_id: base_link
+name:
+- elbow_joint
+- shoulder_lift_joint
+- shoulder_pan_joint
+- shoulder_pan_joint1
+- wrist_1_joint
+- wrist_2_joint
+- wrist_3_joint
+position:
+- -0.00020973476982298029
+- -3.2900632852831753
+- 0.0035979542015133494
+- 6.912284478453268e-12
+- -9.604063569153119e-10
+- 1.5584841737172827e-10
+- -5.061666755723834e-10
+velocity:
+- -1.4786115040688053e-11
+- -1.1328310685343457e-11
+- 5.590855903236935e-12
+- 3.232266884700685e-14
+- -6.04461966591252e-11
+- 8.982252008155056e-12
+- -3.3258881326075906e-11
+effort:
+- 2.360364384248371
+- 15.226883858717827
+- -12.168051653037514
+- 2.6603719227580314e-14
+- 0.5561299562500426
+- -0.021287486811188226
+- -0.002898491863418905
+---
+
+publisher: beginning loop
+publishing #1: std_msgs.msg.Float64MultiArray(layout=std_msgs.msg.MultiArrayLayout(dim=[], data_offset=0), data=[0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0])
+
+=== index 3 cmd [0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0] ===
+header:
+  stamp:
+    sec: 25
+    nanosec: 759000000
+  frame_id: base_link
+name:
+- elbow_joint
+- shoulder_lift_joint
+- shoulder_pan_joint
+- shoulder_pan_joint1
+- wrist_1_joint
+- wrist_2_joint
+- wrist_3_joint
+position:
+- -0.00020973478742951604
+- -3.2900632853174456
+- 0.0035979542164595057
+- 6.959411680387975e-12
+- -1.1112181516690954e-09
+- 1.7816782195059792e-10
+- -5.897631311585923e-10
+velocity:
+- -6.749045766696327e-13
+- -1.394605091131762e-11
+- 5.602779525049062e-12
+- 7.049319895174877e-15
+- -5.362067734271392e-11
+- 7.909215817003545e-12
+- -2.990096798632935e-11
+effort:
+- 2.360364383655378
+- 15.226883857018867
+- -12.168051652385303
+- 2.698535839229521e-14
+- 0.5561299562330924
+- -0.021287486810539897
+- -0.00289849186329421
+---
+
+publisher: beginning loop
+publishing #1: std_msgs.msg.Float64MultiArray(layout=std_msgs.msg.MultiArrayLayout(dim=[], data_offset=0), data=[0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0])
+
+=== index 4 cmd [0.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0] ===
+header:
+  stamp:
+    sec: 28
+    nanosec: 379000000
+  frame_id: base_link
+name:
+- elbow_joint
+- shoulder_lift_joint
+- shoulder_pan_joint
+- shoulder_pan_joint1
+- wrist_1_joint
+- wrist_2_joint
+- wrist_3_joint
+position:
+- -0.00020973481256303747
+- -3.290638861059933
+- 0.0035979542311062847
+- 7.0219566421107574e-12
+- -7.376656902195487e-10
+- 1.898520627407753e-10
+- -3.3894538431457723e-10
+velocity:
+- -1.465593878896554e-11
+- -7.093060793473757e-05
+- 5.582508413870535e-12
+- 3.3365237656068913e-14
+- 2.541926669152872e-10
+- 2.496218075992429e-12
+- 1.6720253783950034e-10
+effort:
+- 2.3540470986497004
+- 15.202263912384375
+- -12.168046497777897
+- 3.957470696406423e-05
+- 0.5560825293138913
+- -0.02128565285637941
+- -0.0028982346128289065
+---
+
+publisher: beginning loop
+publishing #1: std_msgs.msg.Float64MultiArray(layout=std_msgs.msg.MultiArrayLayout(dim=[], data_offset=0), data=[0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0])
+
+=== index 5 cmd [0.0, 0.0, 0.0, 0.0, 0.0, 3.0, 0.0] ===
+header:
+  stamp:
+    sec: 30
+    nanosec: 950000000
+  frame_id: base_link
+name:
+- elbow_joint
+- shoulder_lift_joint
+- shoulder_pan_joint
+- shoulder_pan_joint1
+- wrist_1_joint
+- wrist_2_joint
+- wrist_3_joint
+position:
+- -0.00020973485159791146
+- -3.290672661181722
+- 0.003597954245475516
+- 7.079825706577353e-12
+- -5.537628454544704e-10
+- 9.178064015035718e-10
+- -2.059060806056016e-10
+velocity:
+- -1.5575877393425586e-11
+- -1.4047808055694944e-11
+- 5.597613952218472e-12
+- 1.464561978636869e-14
+- -6.082292308695614e-11
+- 4.867506397943089e-10
+- -3.190592625171296e-11
+effort:
+- 2.353549254351193
+- 15.200411618331149
+- -12.16801829495798
+- 2.8057417500448878e-14
+- 0.556079091813436
+- -0.02128553982741042
+- -0.002898226763366803
+---
+
+publisher: beginning loop
+publishing #1: std_msgs.msg.Float64MultiArray(layout=std_msgs.msg.MultiArrayLayout(dim=[], data_offset=0), data=[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0])
+
+=== index 6 cmd [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 3.0] ===
+header:
+  stamp:
+    sec: 33
+    nanosec: 929000000
+  frame_id: base_link
+name:
+- elbow_joint
+- shoulder_lift_joint
+- shoulder_pan_joint
+- shoulder_pan_joint1
+- wrist_1_joint
+- wrist_2_joint
+- wrist_3_joint
+position:
+- -0.00020973489795149172
+- -3.2906726612240704
+- 0.003597954262149097
+- 7.133046986065918e-12
+- -7.26549401697848e-10
+- 1.5937971785138094e-09
+- 6.575328211221225e-10
+velocity:
+- -1.553726765302077e-11
+- -1.4050826474543143e-11
+- 5.592991347835863e-12
+- 2.0556147929673418e-14
+- -5.559715188230285e-11
+- 8.648006356165583e-12
+- 5.597722285699547e-10
+effort:
+- 2.353549253341971
+- 15.200411615954929
+- -12.168018294229725
+- 2.5049406993105094e-14
+- 0.5560790917889897
+- -0.021285539826510283
+- -0.002898226763621645
+---
+

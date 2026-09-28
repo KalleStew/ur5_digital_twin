@@ -1,0 +1,156 @@
+[INFO] [launch]: All log files can be found below /home/kallestewart/.ros/log/2026-09-22-18-14-02-417683-kallestewart-Apple-Virtualization-Generic-Platform-33471
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [robot_state_publisher-1]: process started with pid [33485]
+[INFO] [gazebo-2]: process started with pid [33486]
+[INFO] [create-3]: process started with pid [33487]
+[create-3] [INFO] [1790115242.908538407] [ros_gz_sim]: Requesting list of world names.
+[robot_state_publisher-1] [INFO] [1790115242.911455154] [robot_state_publisher]: Robot initialized
+[create-3] [INFO] [1790115243.610702368] [ros_gz_sim]: Entity creation successful.
+[INFO] [create-3]: process has finished cleanly [pid 33487]
+[INFO] [spawner-4]: process started with pid [33538]
+[spawner-4] [INFO] [1790115244.129710226] [spawner_joint_state_broadcaster]: waiting for service /controller_manager/list_controllers to become available...
+[gazebo-2] [INFO] [1790115245.381566346] [gz_ros_control]: [gz_ros2_control] Fixed joint ['world_to_table'] (Entity='31') is skipped.
+[gazebo-2] [INFO] [1790115245.383313478] [gz_ros_control]: Loading controller_manager
+[gazebo-2] [INFO] [1790115245.399022743] [controller_manager]: Using ROS clock for triggering controller manager cycles.
+[gazebo-2] [INFO] [1790115245.402081078] [controller_manager]: Subscribing to '/robot_description' topic for robot description.
+[gazebo-2] [WARN] [1790115245.405316125] [gz_ros_control]: Waiting RM to load and initialize hardware...
+[gazebo-2] [INFO] [1790115245.405542090] [controller_manager]: Received robot description from topic.
+[gazebo-2] [INFO] [1790115245.405566049] [controller_manager]: Enforcing command limits is disabled. Command limits from URDF will be ignored.
+[gazebo-2] [INFO] [1790115245.411022907] [gz_ros_control]: The position_proportional_gain has been set to: 0.1
+[gazebo-2] [INFO] [1790115245.411132618] [gz_ros_control]: Loading joint: shoulder_pan_joint1
+[gazebo-2] [INFO] [1790115245.411174203] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790115245.411187328] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.412673536] [gz_ros_control]: 			 found initial value: 0.000000
+[gazebo-2] [INFO] [1790115245.413323554] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790115245.413583394] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413597686] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790115245.413602437] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413625937] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413640813] [gz_ros_control]: Loading joint: shoulder_pan_joint
+[gazebo-2] [INFO] [1790115245.413646229] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790115245.413650313] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413654771] [gz_ros_control]: 			 found initial value: 0.000000
+[gazebo-2] [INFO] [1790115245.413659313] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790115245.413663688] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413667230] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790115245.413670730] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413676814] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413684689] [gz_ros_control]: Loading joint: shoulder_lift_joint
+[gazebo-2] [INFO] [1790115245.413689397] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790115245.413693064] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413696481] [gz_ros_control]: 			 found initial value: -1.570800
+[gazebo-2] [INFO] [1790115245.413700481] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790115245.413703939] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413708273] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790115245.413711731] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413717648] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413725107] [gz_ros_control]: Loading joint: elbow_joint
+[gazebo-2] [INFO] [1790115245.413729607] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790115245.413750649] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413755607] [gz_ros_control]: 			 found initial value: 0.000000
+[gazebo-2] [INFO] [1790115245.413759607] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790115245.413763191] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413766608] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790115245.413769983] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413775108] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413782650] [gz_ros_control]: Loading joint: wrist_1_joint
+[gazebo-2] [INFO] [1790115245.413786733] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790115245.413790525] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413793775] [gz_ros_control]: 			 found initial value: 0.000000
+[gazebo-2] [INFO] [1790115245.413797734] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790115245.413801109] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413804609] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790115245.413808192] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413814192] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413821484] [gz_ros_control]: Loading joint: wrist_2_joint
+[gazebo-2] [INFO] [1790115245.413825651] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790115245.413829151] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413832526] [gz_ros_control]: 			 found initial value: 0.000000
+[gazebo-2] [INFO] [1790115245.413836360] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790115245.413841235] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413844902] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790115245.413878402] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413886486] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413893778] [gz_ros_control]: Loading joint: wrist_3_joint
+[gazebo-2] [INFO] [1790115245.413897945] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790115245.413901486] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413904695] [gz_ros_control]: 			 found initial value: 0.000000
+[gazebo-2] [INFO] [1790115245.413908612] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790115245.413911945] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.413915320] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790115245.413940779] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790115245.413947238] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790115245.415725120] [controller_manager]: Initialize hardware 'GazeboSystem' 
+[gazebo-2] [WARN] [1790115245.415810206] [controller_manager.hardware_component.system.GazeboSystem]: Executor is not available during hardware component initialization for 'GazeboSystem'. Skipping node creation!
+[gazebo-2] [INFO] [1790115245.415966502] [controller_manager]: Successful initialization of hardware 'GazeboSystem'
+[gazebo-2] [INFO] [1790115245.416365888] [controller_manager]: Activating component 'GazeboSystem'.
+[gazebo-2] [INFO] [1790115245.416386972] [resource_manager]: 'configure' hardware 'GazeboSystem' 
+[gazebo-2] [INFO] [1790115245.416393180] [gz_ros_control]: System Successfully configured!
+[gazebo-2] [INFO] [1790115245.416398722] [resource_manager]: Successful 'configure' of hardware 'GazeboSystem'
+[gazebo-2] [INFO] [1790115245.416410847] [resource_manager]: 'activate' hardware 'GazeboSystem' 
+[gazebo-2] [INFO] [1790115245.416430348] [resource_manager]: Successful 'activate' of hardware 'GazeboSystem'
+[gazebo-2] [WARN] [1790115245.416534934] [controller_manager]: Component 'GazeboSystem' does not have read or write statistics initialized, skipping registration.
+[gazebo-2] [INFO] [1790115245.416545059] [controller_manager]: Resource Manager has been successfully initialized. Starting Controller Manager services...
+[gazebo-2] [INFO] [1790115245.640261427] [controller_manager]: Loading controller : 'joint_state_broadcaster' of type 'joint_state_broadcaster/JointStateBroadcaster'
+[gazebo-2] [INFO] [1790115245.640345013] [controller_manager]: Loading controller 'joint_state_broadcaster'
+[gazebo-2] [INFO] [1790115245.653354788] [controller_manager]: Controller 'joint_state_broadcaster' node arguments: --ros-args --params-file /home/kallestewart/ros2_ws/install/ur5_moveit_config/share/ur5_moveit_config/config/ros2_controllers.yaml -p use_sim_time:=true --param use_sim_time:=true 
+[spawner-4] [INFO] [1790115245.671957634] [spawner_joint_state_broadcaster]: Loaded joint_state_broadcaster
+[gazebo-2] [INFO] [1790115245.673812643] [controller_manager]: Configuring controller: 'joint_state_broadcaster'
+[gazebo-2] [INFO] [1790115245.674292489] [joint_state_broadcaster]: 'joints' or 'interfaces' parameter is empty. All available state interfaces will be published
+[gazebo-2] [INFO] [1790115245.686910379] [controller_manager]: Activating controllers: [ joint_state_broadcaster ]
+[gazebo-2] [WARN] [1790115248.075681517] [gz_ros_control]:  Desired controller update period (0.01 s) is slower than the gazebo simulation period (0.001 s).
+[gazebo-2] [WARN] [1790115248.087581219] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [INFO] [1790115248.089194429] [controller_manager]: Successfully switched controllers!
+[spawner-4] [INFO] [1790115248.107958736] [spawner_joint_state_broadcaster]: Configured and activated joint_state_broadcaster
+[INFO] [spawner-4]: process has finished cleanly [pid 33538]
+[INFO] [spawner-5]: process started with pid [33649]
+[gazebo-2] [INFO] [1790115248.721248444] [controller_manager]: Loading controller : 'ur_manipulator_controller' of type 'joint_trajectory_controller/JointTrajectoryController'
+[gazebo-2] [INFO] [1790115248.721294737] [controller_manager]: Loading controller 'ur_manipulator_controller'
+[gazebo-2] [INFO] [1790115248.732924348] [controller_manager]: Controller 'ur_manipulator_controller' node arguments: --ros-args --params-file /home/kallestewart/ros2_ws/install/ur5_moveit_config/share/ur5_moveit_config/config/ros2_controllers.yaml -p use_sim_time:=true --param use_sim_time:=true 
+[spawner-5] [INFO] [1790115248.762694040] [spawner_ur_manipulator_controller]: Loaded ur_manipulator_controller
+[gazebo-2] [INFO] [1790115248.764352086] [controller_manager]: Configuring controller: 'ur_manipulator_controller'
+[gazebo-2] [INFO] [1790115248.764586259] [ur_manipulator_controller]: No specific joint names are used for command interfaces. Using 'joints' parameter.
+[gazebo-2] [INFO] [1790115248.764753097] [ur_manipulator_controller]: Command interfaces are [effort] and state interfaces are [position velocity].
+[gazebo-2] [INFO] [1790115248.764778598] [ur_manipulator_controller]: Using 'splines' interpolation method.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] [INFO] [1790115248.770427586] [ur_manipulator_controller]: Action status changes will be monitored at 20.00 Hz.
+[gazebo-2] [INFO] [1790115248.773399709] [ur_manipulator_controller]: No scaling interface set. This controller will not read speed scaling from the hardware.
+[gazebo-2] [INFO] [1790115248.785386872] [controller_manager]: Activating controllers: [ ur_manipulator_controller ]
+[gazebo-2] [INFO] [1790115248.793584055] [controller_manager]: Successfully switched controllers!
+[spawner-5] [INFO] [1790115248.805114205] [spawner_ur_manipulator_controller]: Configured and activated ur_manipulator_controller
+[INFO] [spawner-5]: process has finished cleanly [pid 33649]
+[INFO] [spawner-6]: process started with pid [33673]
+[gazebo-2] [INFO] [1790115249.329032284] [controller_manager]: Loading controller : 'forward_effort_controller' of type 'effort_controllers/JointGroupEffortController'
+[gazebo-2] [INFO] [1790115249.329068410] [controller_manager]: Loading controller 'forward_effort_controller'
+[gazebo-2] [INFO] [1790115249.338777843] [controller_manager]: Controller 'forward_effort_controller' node arguments: --ros-args --params-file /home/kallestewart/ros2_ws/install/ur5_moveit_config/share/ur5_moveit_config/config/ros2_controllers.yaml -p use_sim_time:=true --param use_sim_time:=true 
+[spawner-6] [INFO] [1790115249.372065589] [spawner_forward_effort_controller]: Loaded forward_effort_controller
+[gazebo-2] [INFO] [1790115249.374566616] [controller_manager]: Configuring controller: 'forward_effort_controller'
+[gazebo-2] [INFO] [1790115249.375962195] [forward_effort_controller]: configure successful
+[INFO] [spawner-6]: process has finished cleanly [pid 33673]
+[gazebo-2] [INFO] [1790115259.969724424] [controller_manager]: Activating controllers: [ forward_effort_controller ]
+[gazebo-2] [WARN] [1790115259.970069766] [controller_manager]: Unable to activate controller 'forward_effort_controller' since the command interface 'shoulder_pan_joint1/effort' is currently claimed by another controller.
+[gazebo-2] [INFO] [1790115260.680450355] [controller_manager]: Activating controllers: [ forward_effort_controller ]
+[gazebo-2] [INFO] [1790115260.680507148] [controller_manager]: Deactivating controllers: [ ur_manipulator_controller ]
+[gazebo-2] [INFO] [1790115260.686300138] [controller_manager]: Switch controller timeout is set to 0, using default 1s!
+[gazebo-2] [INFO] [1790115260.691802496] [controller_manager]: Requested controller switch from non-realtime loop
+[gazebo-2] [INFO] [1790115260.693171366] [forward_effort_controller]: activate successful
+[gazebo-2] [INFO] [1790115260.693284411] [controller_manager]: Successfully switched controllers!
+[gazebo-2] [INFO] [1790115264.444683661] [controller_manager]: Activating controllers: [ ur_manipulator_controller ]
+[gazebo-2] [INFO] [1790115264.445472057] [controller_manager]: Deactivating controllers: [ forward_effort_controller ]
+[gazebo-2] [INFO] [1790115264.452034193] [controller_manager]: Requested controller switch from non-realtime loop
+[gazebo-2] [INFO] [1790115264.461375903] [controller_manager]: Successfully switched controllers!
+[gazebo-2] [INFO] [1790115267.584346147] [controller_manager]: Activating controllers: [ forward_effort_controller ]
+[gazebo-2] [INFO] [1790115267.584701115] [controller_manager]: Deactivating controllers: [ ur_manipulator_controller ]
+[gazebo-2] [INFO] [1790115267.598575196] [controller_manager]: Requested controller switch from non-realtime loop
+[gazebo-2] [INFO] [1790115267.599543889] [forward_effort_controller]: activate successful
+[gazebo-2] [INFO] [1790115267.599607849] [controller_manager]: Successfully switched controllers!
+[gazebo-2] [INFO] [1790115293.648693799] [controller_manager]: Activating controllers: [ ur_manipulator_controller ]
+[gazebo-2] [INFO] [1790115293.648839469] [controller_manager]: Deactivating controllers: [ forward_effort_controller ]
+[gazebo-2] [INFO] [1790115293.649892872] [controller_manager]: Requested controller switch from non-realtime loop
+[gazebo-2] [INFO] [1790115293.651032319] [controller_manager]: Successfully switched controllers!

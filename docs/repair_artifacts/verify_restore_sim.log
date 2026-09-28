@@ -1,0 +1,189 @@
+ur5_env.sh loaded (repo=/home/kallestewart/ros2_ws/src/ur5_digital_twin ws=/home/kallestewart/ros2_ws)
+Functions: ur5env ur5zenoh_restart ur5kill ur5setup ur5build ur5clean ur5sim ur5simgui ur5candle ur5demo ur5plan ur5run ur5reset ur5ctl ur5iface ur5brain ur5states ur5hz ur5wp ur5doctor
++ source /opt/ros/jazzy/setup.bash
++ export RMW_IMPLEMENTATION=rmw_zenoh_cpp
++ source /home/kallestewart/ros2_ws/install/setup.bash
++ rmw_zenohd already running (pid 77204)
+NOTE: Gazebo + RViz windows should open. Engine=ogre
++ ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=false start_rviz:=true gz_render_engine:=ogre rmw_implementation:=rmw_zenoh_cpp start_zenoh_router:=false 
+[INFO] [launch]: All log files can be found below /home/kallestewart/.ros/log/2026-09-24-17-55-20-638701-kallestewart-Apple-Virtualization-Generic-Platform-95410
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [robot_state_publisher-1]: process started with pid [95469]
+[INFO] [gazebo-2]: process started with pid [95470]
+[INFO] [create-3]: process started with pid [95471]
+[INFO] [parameter_bridge-4]: process started with pid [95473]
+[robot_state_publisher-1] [INFO] [1790286922.576415400] [robot_state_publisher]: Robot initialized
+[create-3] [INFO] [1790286922.583023521] [ros_gz_sim]: Requesting list of world names.
+[parameter_bridge-4] [INFO] [1790286922.708269900] [clock_bridge]: Creating GZ->ROS Bridge: [/clock (gz.msgs.Clock) -> /clock (rosgraph_msgs/msg/Clock)] (Lazy 0)
+[create-3] [INFO] [1790286922.894114595] [ros_gz_sim]: Entity creation successful.
+[INFO] [create-3]: process has finished cleanly [pid 95471]
+[INFO] [spawner-5]: process started with pid [95571]
+[spawner-5] [FATAL] [1790286924.090201551] [spawner_joint_state_broadcaster]: Failed loading controller joint_state_broadcaster
+[ERROR] [spawner-5]: process has died [pid 95571, exit code 1, cmd '/opt/ros/jazzy/lib/controller_manager/spawner joint_state_broadcaster --controller-manager-timeout 30 --ros-args -p use_sim_time:=True'].
+[INFO] [spawner-6]: process started with pid [95615]
+[spawner-6] [FATAL] [1790286925.528018486] [spawner_ur_manipulator_controller]: Failed loading controller ur_manipulator_controller
+[ERROR] [spawner-6]: process has died [pid 95615, exit code 1, cmd '/opt/ros/jazzy/lib/controller_manager/spawner ur_manipulator_controller --controller-manager-timeout 30 --ros-args -p use_sim_time:=True'].
+[INFO] [spawner-7]: process started with pid [95655]
+[spawner-7] [FATAL] [1790286926.327882569] [spawner_forward_effort_controller]: Failed loading controller forward_effort_controller
+[ERROR] [spawner-7]: process has died [pid 95655, exit code 1, cmd '/opt/ros/jazzy/lib/controller_manager/spawner forward_effort_controller --inactive --controller-manager-timeout 30 --ros-args -p use_sim_time:=True'].
+[INFO] [move_group-8]: process started with pid [95712]
+[move_group-8] 2026-09-24T21:55:27.796477Z  WARN ThreadId(16) zenoh::net::runtime::orchestrator: Scouting delay elapsed before start conditions are met.
+[move_group-8] [INFO] [1790286927.849329285] [move_group.moveit.moveit.ros.rdf_loader]: Loaded robot model in 0 seconds
+[move_group-8] [INFO] [1790286927.851384395] [move_group.moveit.moveit.core.robot_model]: Loading robot model 'ur57_arm'...
+[move_group-8] [INFO] [1790286927.851426609] [move_group.moveit.moveit.core.robot_model]: No root/virtual joint specified in SRDF. Assuming fixed joint
+[move_group-8] [INFO] [1790286928.219543642] [move_group.moveit.moveit.kinematics.kdl_kinematics_plugin]: Joint weights for group 'ur_manipulator': 1 1 1 1 1 1 1
+[INFO] [rviz2-9]: process started with pid [95763]
+[move_group-8] [INFO] [1790286929.733403445] [move_group.moveit.moveit.ros.planning_scene_monitor]: Publishing maintained planning scene on 'monitored_planning_scene'
+[move_group-8] [INFO] [1790286929.734373175] [move_group.moveit.moveit.ros.moveit_cpp]: Listening to 'joint_states' for joint states
+[move_group-8] [INFO] [1790286929.741429243] [move_group.moveit.moveit.ros.current_state_monitor]: Listening to joint states on topic 'joint_states'
+[move_group-8] [INFO] [1790286929.747053386] [move_group.moveit.moveit.ros.planning_scene_monitor]: Listening to '/attached_collision_object' for attached collision objects
+[move_group-8] [INFO] [1790286929.747201825] [move_group.moveit.moveit.ros.planning_scene_monitor]: Stopping existing planning scene publisher.
+[move_group-8] [INFO] [1790286929.752350062] [move_group.moveit.moveit.ros.planning_scene_monitor]: Stopped publishing maintained planning scene.
+[move_group-8] [INFO] [1790286929.752751665] [move_group.moveit.moveit.ros.planning_scene_monitor]: Publishing maintained planning scene on 'monitored_planning_scene'
+[move_group-8] [INFO] [1790286929.753003578] [move_group.moveit.moveit.ros.planning_scene_monitor]: Starting planning scene monitor
+[move_group-8] [INFO] [1790286929.757862063] [move_group.moveit.moveit.ros.planning_scene_monitor]: Listening to '/planning_scene'
+[move_group-8] [INFO] [1790286929.757922489] [move_group.moveit.moveit.ros.planning_scene_monitor]: Starting world geometry update monitor for collision objects, attached objects, octomap updates.
+[move_group-8] [INFO] [1790286929.760348022] [move_group.moveit.moveit.ros.planning_scene_monitor]: Listening to 'collision_object'
+[move_group-8] [INFO] [1790286929.760660695] [move_group.moveit.moveit.ros.planning_scene_monitor]: Listening to 'planning_scene_world' for planning scene world geometry
+[move_group-8] [WARN] [1790286929.761064756] [move_group.moveit.moveit.ros.occupancy_map_monitor]: Resolution not specified for Octomap. Assuming resolution = 0.1 instead
+[move_group-8] [ERROR] [1790286929.761085134] [move_group.moveit.moveit.ros.occupancy_map_monitor]: No 3D sensor plugin(s) defined for octomap updates
+[rviz2-9] [INFO] [1790286930.499210661] [rviz2]: Stereo is NOT SUPPORTED
+[rviz2-9] [INFO] [1790286930.499748325] [rviz2]: OpenGl version: 4.5 (GLSL 4.5)
+[move_group-8] [INFO] [1790286930.548647226] [move_group.moveit.moveit.ros.planning_pipeline]: Successfully loaded planner 'CHOMP'
+[move_group-8] [INFO] [1790286930.549787105] [move_group]: Try loading adapter 'default_planning_request_adapters/ResolveConstraintFrames'
+[move_group-8] [INFO] [1790286930.551641341] [move_group]: Loaded adapter 'default_planning_request_adapters/ResolveConstraintFrames'
+[move_group-8] [INFO] [1790286930.551661760] [move_group]: Try loading adapter 'default_planning_request_adapters/ValidateWorkspaceBounds'
+[move_group-8] [INFO] [1790286930.551894629] [move_group]: Loaded adapter 'default_planning_request_adapters/ValidateWorkspaceBounds'
+[move_group-8] [INFO] [1790286930.551900379] [move_group]: Try loading adapter 'default_planning_request_adapters/CheckStartStateBounds'
+[move_group-8] [INFO] [1790286930.551925008] [move_group]: Loaded adapter 'default_planning_request_adapters/CheckStartStateBounds'
+[move_group-8] [INFO] [1790286930.551969181] [move_group]: Try loading adapter 'default_planning_request_adapters/CheckStartStateCollision'
+[move_group-8] [INFO] [1790286930.551985517] [move_group]: Loaded adapter 'default_planning_request_adapters/CheckStartStateCollision'
+[move_group-8] [INFO] [1790286930.552756382] [move_group]: Try loading adapter 'default_planning_response_adapters/AddTimeOptimalParameterization'
+[move_group-8] [INFO] [1790286930.572239506] [move_group]: Loaded adapter 'default_planning_response_adapters/AddTimeOptimalParameterization'
+[move_group-8] [INFO] [1790286930.572313976] [move_group]: Try loading adapter 'default_planning_response_adapters/ValidateSolution'
+[move_group-8] [INFO] [1790286930.576721969] [move_group]: Loaded adapter 'default_planning_response_adapters/ValidateSolution'
+[move_group-8] [INFO] [1790286930.577474206] [move_group]: Try loading adapter 'default_planning_response_adapters/DisplayMotionPath'
+[move_group-8] [INFO] [1790286930.581038573] [move_group]: Loaded adapter 'default_planning_response_adapters/DisplayMotionPath'
+[move_group-8] [INFO] [1790286930.596095868] [move_group.moveit.moveit.planners.pilz.joint_limits_aggregator]: Reading limits from namespace robot_description_planning
+[move_group-8] [INFO] [1790286930.611361111] [move_group.moveit.moveit.planners.pilz.command_planner]: Available plugins: pilz_industrial_motion_planner/PlanningContextLoaderCIRC pilz_industrial_motion_planner/PlanningContextLoaderLIN pilz_industrial_motion_planner/PlanningContextLoaderPTP 
+[move_group-8] [INFO] [1790286930.611484754] [move_group.moveit.moveit.planners.pilz.command_planner]: About to load: pilz_industrial_motion_planner/PlanningContextLoaderCIRC
+[move_group-8] [INFO] [1790286930.617738315] [move_group.moveit.moveit.planners.pilz.command_planner]: Registered Algorithm [CIRC]
+[move_group-8] [INFO] [1790286930.618545519] [move_group.moveit.moveit.planners.pilz.command_planner]: About to load: pilz_industrial_motion_planner/PlanningContextLoaderLIN
+[move_group-8] [INFO] [1790286930.620834654] [move_group.moveit.moveit.planners.pilz.command_planner]: Registered Algorithm [LIN]
+[move_group-8] [INFO] [1790286930.622007246] [move_group.moveit.moveit.planners.pilz.command_planner]: About to load: pilz_industrial_motion_planner/PlanningContextLoaderPTP
+[move_group-8] [INFO] [1790286930.623953120] [move_group.moveit.moveit.planners.pilz.command_planner]: Registered Algorithm [PTP]
+[move_group-8] [INFO] [1790286930.624075305] [move_group.moveit.moveit.ros.planning_pipeline]: Successfully loaded planner 'Pilz Industrial Motion Planner'
+[move_group-8] [INFO] [1790286930.625539774] [move_group]: Try loading adapter 'default_planning_request_adapters/ResolveConstraintFrames'
+[move_group-8] [INFO] [1790286930.625979049] [move_group]: Loaded adapter 'default_planning_request_adapters/ResolveConstraintFrames'
+[move_group-8] [INFO] [1790286930.625989133] [move_group]: Try loading adapter 'default_planning_request_adapters/ValidateWorkspaceBounds'
+[move_group-8] [INFO] [1790286930.627561952] [move_group]: Loaded adapter 'default_planning_request_adapters/ValidateWorkspaceBounds'
+[move_group-8] [INFO] [1790286930.627581413] [move_group]: Try loading adapter 'default_planning_request_adapters/CheckStartStateBounds'
+[move_group-8] [INFO] [1790286930.627601125] [move_group]: Loaded adapter 'default_planning_request_adapters/CheckStartStateBounds'
+[move_group-8] [INFO] [1790286930.627604667] [move_group]: Try loading adapter 'default_planning_request_adapters/CheckStartStateCollision'
+[move_group-8] [INFO] [1790286930.627627712] [move_group]: Loaded adapter 'default_planning_request_adapters/CheckStartStateCollision'
+[move_group-8] [INFO] [1790286930.630673501] [move_group]: Try loading adapter 'default_planning_response_adapters/ValidateSolution'
+[move_group-8] [INFO] [1790286930.633688577] [move_group]: Loaded adapter 'default_planning_response_adapters/ValidateSolution'
+[move_group-8] [INFO] [1790286930.633746044] [move_group]: Try loading adapter 'default_planning_response_adapters/DisplayMotionPath'
+[move_group-8] [INFO] [1790286930.635332157] [move_group]: Loaded adapter 'default_planning_response_adapters/DisplayMotionPath'
+[rviz2-9] [INFO] [1790286930.678808538] [rviz2]: Stereo is NOT SUPPORTED
+[move_group-8] [INFO] [1790286930.709355609] [move_group.moveit.moveit.ros.planning_pipeline]: Successfully loaded planner 'OMPL'
+[move_group-8] [INFO] [1790286930.715752191] [move_group]: Try loading adapter 'default_planning_request_adapters/ResolveConstraintFrames'
+[move_group-8] [INFO] [1790286930.716141000] [move_group]: Loaded adapter 'default_planning_request_adapters/ResolveConstraintFrames'
+[move_group-8] [INFO] [1790286930.716154710] [move_group]: Try loading adapter 'default_planning_request_adapters/ValidateWorkspaceBounds'
+[move_group-8] [INFO] [1790286930.716407664] [move_group]: Loaded adapter 'default_planning_request_adapters/ValidateWorkspaceBounds'
+[move_group-8] [INFO] [1790286930.716413874] [move_group]: Try loading adapter 'default_planning_request_adapters/CheckStartStateBounds'
+[move_group-8] [INFO] [1790286930.716425417] [move_group]: Loaded adapter 'default_planning_request_adapters/CheckStartStateBounds'
+[move_group-8] [INFO] [1790286930.716428501] [move_group]: Try loading adapter 'default_planning_request_adapters/CheckStartStateCollision'
+[move_group-8] [INFO] [1790286930.716436585] [move_group]: Loaded adapter 'default_planning_request_adapters/CheckStartStateCollision'
+[move_group-8] [INFO] [1790286930.717108061] [move_group]: Try loading adapter 'default_planning_response_adapters/AddTimeOptimalParameterization'
+[move_group-8] [INFO] [1790286930.717287296] [move_group]: Loaded adapter 'default_planning_response_adapters/AddTimeOptimalParameterization'
+[move_group-8] [INFO] [1790286930.717331803] [move_group]: Try loading adapter 'default_planning_response_adapters/ValidateSolution'
+[move_group-8] [INFO] [1790286930.717615220] [move_group]: Loaded adapter 'default_planning_response_adapters/ValidateSolution'
+[move_group-8] [INFO] [1790286930.717622138] [move_group]: Try loading adapter 'default_planning_response_adapters/DisplayMotionPath'
+[move_group-8] [INFO] [1790286930.717726028] [move_group]: Loaded adapter 'default_planning_response_adapters/DisplayMotionPath'
+[move_group-8] [INFO] [1790286930.726813430] [move_group.moveit.moveit.ros.planning_pipeline]: Successfully loaded planner 'STOMP'
+[move_group-8] [INFO] [1790286930.727743861] [move_group]: Try loading adapter 'default_planning_request_adapters/ResolveConstraintFrames'
+[move_group-8] [INFO] [1790286930.727800203] [move_group]: Loaded adapter 'default_planning_request_adapters/ResolveConstraintFrames'
+[move_group-8] [INFO] [1790286930.727804162] [move_group]: Try loading adapter 'default_planning_request_adapters/ValidateWorkspaceBounds'
+[move_group-8] [INFO] [1790286930.728214973] [move_group]: Loaded adapter 'default_planning_request_adapters/ValidateWorkspaceBounds'
+[move_group-8] [INFO] [1790286930.728224558] [move_group]: Try loading adapter 'default_planning_request_adapters/CheckStartStateBounds'
+[move_group-8] [INFO] [1790286930.728239310] [move_group]: Loaded adapter 'default_planning_request_adapters/CheckStartStateBounds'
+[move_group-8] [INFO] [1790286930.728242352] [move_group]: Try loading adapter 'default_planning_request_adapters/CheckStartStateCollision'
+[move_group-8] [INFO] [1790286930.728250353] [move_group]: Loaded adapter 'default_planning_request_adapters/CheckStartStateCollision'
+[move_group-8] [INFO] [1790286930.729014343] [move_group]: Try loading adapter 'default_planning_response_adapters/AddTimeOptimalParameterization'
+[move_group-8] [INFO] [1790286930.729187827] [move_group]: Loaded adapter 'default_planning_response_adapters/AddTimeOptimalParameterization'
+[move_group-8] [INFO] [1790286930.729193911] [move_group]: Try loading adapter 'default_planning_response_adapters/ValidateSolution'
+[move_group-8] [INFO] [1790286930.729355227] [move_group]: Loaded adapter 'default_planning_response_adapters/ValidateSolution'
+[move_group-8] [INFO] [1790286930.729362728] [move_group]: Try loading adapter 'default_planning_response_adapters/DisplayMotionPath'
+[move_group-8] [INFO] [1790286930.729432864] [move_group]: Loaded adapter 'default_planning_response_adapters/DisplayMotionPath'
+[move_group-8] [INFO] [1790286930.796305246] [move_group.moveit.moveit.plugins.simple_controller_manager]: Added FollowJointTrajectory controller for ur_manipulator_controller
+[move_group-8] [INFO] [1790286930.800335599] [move_group.moveit.moveit.plugins.simple_controller_manager]: Returned 1 controllers in list
+[move_group-8] [INFO] [1790286930.800377022] [move_group.moveit.moveit.plugins.simple_controller_manager]: Returned 1 controllers in list
+[move_group-8] [INFO] [1790286930.804312444] [move_group.moveit.moveit.ros.trajectory_execution_manager]: Trajectory execution is managing controllers
+[move_group-8] [INFO] [1790286930.804380204] [move_group]: MoveGroup debug mode is ON
+[move_group-8] [INFO] [1790286930.853941830] [move_group.moveit.moveit.planners.pilz.move_group_sequence_action]: initialize move group sequence action
+[move_group-8] [INFO] [1790286930.863048526] [move_group.moveit.moveit.planners.pilz.joint_limits_aggregator]: Reading limits from namespace robot_description_planning
+[move_group-8] [INFO] [1790286930.863572896] [move_group.moveit.moveit.planners.pilz.joint_limits_aggregator]: Reading limits from namespace robot_description_planning
+[move_group-8] [INFO] [1790286930.863917322] [move_group.moveit.moveit.ros.move_group.executable]: 
+[move_group-8] 
+[move_group-8] ********************************************************
+[move_group-8] * MoveGroup using: 
+[move_group-8] *     - apply_planning_scene_service
+[move_group-8] *     - clear_octomap_service
+[move_group-8] *     - get_group_urdf
+[move_group-8] *     - load_geometry_from_file
+[move_group-8] *     - CartesianPathService
+[move_group-8] *     - execute_trajectory_action
+[move_group-8] *     - get_planning_scene_service
+[move_group-8] *     - kinematics_service
+[move_group-8] *     - move_action
+[move_group-8] *     - motion_plan_service
+[move_group-8] *     - query_planners_service
+[move_group-8] *     - state_validation_service
+[move_group-8] *     - save_geometry_to_file
+[move_group-8] *     - SequenceAction
+[move_group-8] *     - SequenceService
+[move_group-8] ********************************************************
+[move_group-8] 
+[move_group-8] [INFO] [1790286930.863983791] [move_group.moveit.moveit.ros.move_group.context]: MoveGroup context using pipeline ompl
+[move_group-8] [INFO] [1790286930.863993709] [move_group.moveit.moveit.ros.move_group.context]: MoveGroup context initialization complete
+[move_group-8] [96mLoading 'move_group/ApplyPlanningSceneService'...[0m
+[move_group-8] [96mLoading 'move_group/ClearOctomapService'...[0m
+[move_group-8] [96mLoading 'move_group/GetUrdfService'...[0m
+[move_group-8] [96mLoading 'move_group/LoadGeometryFromFileService'...[0m
+[move_group-8] [96mLoading 'move_group/MoveGroupCartesianPathService'...[0m
+[move_group-8] [96mLoading 'move_group/MoveGroupExecuteTrajectoryAction'...[0m
+[move_group-8] [96mLoading 'move_group/MoveGroupGetPlanningSceneService'...[0m
+[move_group-8] [96mLoading 'move_group/MoveGroupKinematicsService'...[0m
+[move_group-8] [96mLoading 'move_group/MoveGroupMoveAction'...[0m
+[move_group-8] [96mLoading 'move_group/MoveGroupPlanService'...[0m
+[move_group-8] [96mLoading 'move_group/MoveGroupQueryPlannersService'...[0m
+[move_group-8] [96mLoading 'move_group/MoveGroupStateValidationService'...[0m
+[move_group-8] [96mLoading 'move_group/SaveGeometryToFileService'...[0m
+[move_group-8] [96mLoading 'pilz_industrial_motion_planner/MoveGroupSequenceAction'...[0m
+[move_group-8] [96mLoading 'pilz_industrial_motion_planner/MoveGroupSequenceService'...[0m
+[move_group-8] 
+[move_group-8] [92mYou can start planning now![0m
+[move_group-8] 
+[rviz2-9] Warning: class_loader.impl: SEVERE WARNING!!! A namespace collision has occurred with plugin factory for class rviz_default_plugins::displays::InteractiveMarkerDisplay. New factory will OVERWRITE existing one. This situation occurs when libraries containing plugins are directly linked against an executable (the one running right now generating this message). Please separate plugins out into their own library or just don't link against the library and use either class_loader::ClassLoader/MultiLibraryClassLoader to open.
+[rviz2-9]          at line 321 in /opt/ros/jazzy/include/class_loader/class_loader/class_loader_core.hpp
+[rviz2-9] [ERROR] [1790286934.016497662] [moveit_87606619.moveit.ros.motion_planning_frame]: Action server: /recognize_objects not available
+[rviz2-9] [INFO] [1790286934.091902036] [moveit_87606619.moveit.ros.motion_planning_frame]: MoveGroup namespace changed: / -> . Reloading params.
+[rviz2-9] [INFO] [1790286934.209739107] [moveit_87606619.moveit.ros.rdf_loader]: Loaded robot model in 0 seconds
+[rviz2-9] [INFO] [1790286934.209959597] [moveit_87606619.moveit.core.robot_model]: Loading robot model 'ur57_arm'...
+[rviz2-9] [INFO] [1790286934.210010646] [moveit_87606619.moveit.core.robot_model]: No root/virtual joint specified in SRDF. Assuming fixed joint
+[rviz2-9] [INFO] [1790286934.459849149] [moveit_87606619.moveit.kinematics.kdl_kinematics_plugin]: Joint weights for group 'ur_manipulator': 1 1 1 1 1 1 1
+[rviz2-9] [INFO] [1790286935.577201371] [moveit_87606619.moveit.ros.planning_scene_monitor]: Starting planning scene monitor
+[rviz2-9] [INFO] [1790286935.578298442] [moveit_87606619.moveit.ros.planning_scene_monitor]: Listening to '/monitored_planning_scene'
+[rviz2-9] [INFO] [1790286937.110817145] [interactive_marker_display_205598024632032]: Connected on namespace: /rviz_moveit_motion_planning_display/robot_interaction_interactive_marker_topic
+[rviz2-9] [INFO] [1790286937.196923556] [moveit_87606619.moveit.ros.motion_planning_frame]: group ur_manipulator
+[rviz2-9] [INFO] [1790286937.197014694] [moveit_87606619.moveit.ros.motion_planning_frame]: Constructing new MoveGroup connection for group 'ur_manipulator' in namespace ''
+[rviz2-9] [INFO] [1790286937.279103757] [moveit_87606619.moveit.ros.move_group_interface]: Ready to take commands for planning group ur_manipulator.
+[rviz2-9] [INFO] [1790286937.304474183] [moveit_87606619.moveit.ros.motion_planning_frame]: group ur_manipulator
+[rviz2-9] [INFO] [1790286937.474507120] [interactive_marker_display_205598024632032]: Sending request for interactive markers
+[rviz2-9] [INFO] [1790286937.576944415] [interactive_marker_display_205598024632032]: Service response received for initialization
+[ERROR] [parameter_bridge-4]: process has died [pid 95473, exit code -9, cmd '/opt/ros/jazzy/lib/ros_gz_bridge/parameter_bridge /clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock --ros-args -r __node:=clock_bridge -p use_sim_time:=True'].
+[ERROR] [robot_state_publisher-1]: process has died [pid 95469, exit code -9, cmd '/opt/ros/jazzy/lib/robot_state_publisher/robot_state_publisher --ros-args -p use_sim_time:=True --params-file /tmp/launch_params_0zutc6ao'].
+[ERROR] [rviz2-9]: process has died [pid 95763, exit code -9, cmd '/opt/ros/jazzy/lib/rviz2/rviz2 -d /home/kallestewart/ros2_ws/install/ur5_moveit_config/share/ur5_moveit_config/config/moveit.rviz --ros-args -p use_sim_time:=True --params-file /tmp/launch_params_ms3b4fan --params-file /tmp/launch_params_gsepfy14 --params-file /tmp/launch_params_b_phvxlt'].
+[ERROR] [move_group-8]: process has died [pid 95712, exit code -9, cmd '/opt/ros/jazzy/lib/moveit_ros_move_group/move_group --ros-args -p use_sim_time:=True --params-file /tmp/launch_params_h1mb5awu --params-file /tmp/launch_params_pltyruhu'].
+/home/kallestewart/ros2_ws/src/ur5_digital_twin/scripts/ur5_env.sh: line 110: 95410 Killed                  ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=false start_rviz:=true gz_render_engine:="${engine}" rmw_implementation:=rmw_zenoh_cpp start_zenoh_router:=false "$@"

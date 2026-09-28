@@ -1,0 +1,41 @@
+[INFO] [launch]: All log files can be found below /home/kallestewart/.ros/log/2026-09-22-18-17-00-979587-kallestewart-Apple-Virtualization-Generic-Platform-34830
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [robot_state_publisher-1]: process started with pid [34833]
+[INFO] [gazebo-2]: process started with pid [34834]
+[INFO] [create-3]: process started with pid [34835]
+[robot_state_publisher-1] [INFO] [1790115421.497951044] [robot_state_publisher]: Robot initialized
+[create-3] 2026-09-22T22:17:01.970414Z  WARN ThreadId(10) zenoh::net::runtime::orchestrator: Scouting delay elapsed before start conditions are met.
+[create-3] [INFO] [1790115421.979631759] [ros_gz_sim]: Requesting list of world names.
+[create-3] [INFO] [1790115422.188295970] [ros_gz_sim]: Entity creation successful.
+[INFO] [create-3]: process has finished cleanly [pid 34835]
+[INFO] [spawner-4]: process started with pid [34891]
+[spawner-4] [WARN] [1790115432.786663227] [spawner_joint_state_broadcaster]: Failed getting a result from calling /controller_manager/list_controllers in 10.0. (Attempt 1 of 3.)
+[spawner-4] [WARN] [1790115442.802055822] [spawner_joint_state_broadcaster]: Failed getting a result from calling /controller_manager/list_controllers in 10.0. (Attempt 2 of 3.)
+[spawner-4] [WARN] [1790115452.822627172] [spawner_joint_state_broadcaster]: Failed getting a result from calling /controller_manager/list_controllers in 10.0. (Attempt 3 of 3.)
+[spawner-4] Traceback (most recent call last):
+[spawner-4]   File "/opt/ros/jazzy/lib/controller_manager/spawner", line 33, in <module>
+[spawner-4]     sys.exit(load_entry_point('controller-manager==4.45.2', 'console_scripts', 'spawner')())
+[spawner-4]              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[spawner-4]   File "/opt/ros/jazzy/lib/python3.12/site-packages/controller_manager/spawner.py", line 470, in main
+[spawner-4]     if is_controller_loaded(
+[spawner-4]        ^^^^^^^^^^^^^^^^^^^^^
+[spawner-4]   File "/opt/ros/jazzy/lib/python3.12/site-packages/controller_manager/spawner.py", line 70, in is_controller_loaded
+[spawner-4]     controllers = list_controllers(
+[spawner-4]                   ^^^^^^^^^^^^^^^^^
+[spawner-4]   File "/opt/ros/jazzy/lib/python3.12/site-packages/controller_manager/controller_manager_services.py", line 186, in list_controllers
+[spawner-4]     return service_caller(
+[spawner-4]            ^^^^^^^^^^^^^^^
+[spawner-4]   File "/opt/ros/jazzy/lib/python3.12/site-packages/controller_manager/controller_manager_services.py", line 164, in service_caller
+[spawner-4]     raise RuntimeError(
+[spawner-4] RuntimeError: Could not successfully call service /controller_manager/list_controllers after 3 attempts.
+[ERROR] [spawner-4]: process has died [pid 34891, exit code 1, cmd '/opt/ros/jazzy/lib/controller_manager/spawner joint_state_broadcaster --controller-manager-timeout 30 --ros-args'].
+[INFO] [spawner-5]: process started with pid [35118]
+[spawner-5] 2026-09-22T22:17:49.222887Z  WARN ThreadId(17) zenoh::net::runtime::orchestrator: Scouting delay elapsed before start conditions are met.
+[spawner-5] [INFO] [1790115470.736194059] [spawner_ur_manipulator_controller]: waiting for service /controller_manager/list_controllers to become available...
+[spawner-5] [FATAL] [1790115501.203031359] [spawner_ur_manipulator_controller]: Could not contact service /controller_manager/list_controllers
+[ERROR] [spawner-5]: process has died [pid 35118, exit code 1, cmd '/opt/ros/jazzy/lib/controller_manager/spawner ur_manipulator_controller --controller-manager-timeout 30 --ros-args'].
+[INFO] [spawner-6]: process started with pid [35167]
+[spawner-6] 2026-09-22T22:18:23.636866Z  WARN ThreadId(17) zenoh::net::runtime::orchestrator: Scouting delay elapsed before start conditions are met.
+[spawner-6] [INFO] [1790115503.864673816] [spawner_forward_effort_controller]: waiting for service /controller_manager/list_controllers to become available...
+[spawner-6] [FATAL] [1790115534.114266819] [spawner_forward_effort_controller]: Could not contact service /controller_manager/list_controllers
+[ERROR] [spawner-6]: process has died [pid 35167, exit code 1, cmd '/opt/ros/jazzy/lib/controller_manager/spawner forward_effort_controller --inactive --controller-manager-timeout 30 --ros-args'].

@@ -1,0 +1,197 @@
+=== B4 Candle ===
+header:
+  stamp:
+    sec: 3
+    nanosec: 619000000
+  frame_id: base_link
+name:
+- elbow_joint
+- shoulder_lift_joint
+- shoulder_pan_joint
+- shoulder_pan_joint1
+- wrist_1_joint
+- wrist_2_joint
+- wrist_3_joint
+position:
+- -1.8897036416221068e-10
+- -1.574037644939997
+- 5.905186127239133e-11
+- -9.554540470434202e-14
+- -4.764037772695554e-11
+- 1.0822664431417626e-11
+- -1.984077661875495e-11
+velocity:
+- -5.602917435565402e-11
+- -1.2516047226407423e-11
+- 1.774967325895993e-11
+- -3.139329074475228e-14
+- -1.5748463297327042e-11
+- 3.5719262833980303e-12
+- -6.565071348964974e-12
+effort:
+- 10.722989037170432
+- 40.77546138840473
+- -12.324416159610637
+- 1.110223024625157e-15
+- 0.0018227119761786803
+- -6.97695866106934e-05
+- -9.499786524920778e-06
+---
+=== controllers ===
+forward_effort_controller effort_controllers/JointGroupEffortController          inactive
+	update_rate: 100 Hz
+	is_async: False
+	claimed interfaces:
+	required command interfaces:
+		shoulder_pan_joint1/effort
+		shoulder_pan_joint/effort
+		shoulder_lift_joint/effort
+		elbow_joint/effort
+		wrist_1_joint/effort
+		wrist_2_joint/effort
+		wrist_3_joint/effort
+	required state interfaces:
+	chained to interfaces:
+	exported reference interfaces:
+	exported state interfaces:
+ur_manipulator_controller joint_trajectory_controller/JointTrajectoryController  active  
+	update_rate: 100 Hz
+	is_async: False
+	claimed interfaces:
+		shoulder_pan_joint1/effort
+		shoulder_pan_joint/effort
+		shoulder_lift_joint/effort
+		elbow_joint/effort
+		wrist_1_joint/effort
+		wrist_2_joint/effort
+		wrist_3_joint/effort
+	required command interfaces:
+		shoulder_pan_joint1/effort
+		shoulder_pan_joint/effort
+		shoulder_lift_joint/effort
+		elbow_joint/effort
+		wrist_1_joint/effort
+		wrist_2_joint/effort
+		wrist_3_joint/effort
+	required state interfaces:
+		shoulder_pan_joint1/position
+		shoulder_pan_joint1/velocity
+		shoulder_pan_joint/position
+		shoulder_pan_joint/velocity
+		shoulder_lift_joint/position
+		shoulder_lift_joint/velocity
+		elbow_joint/position
+		elbow_joint/velocity
+		wrist_1_joint/position
+		wrist_1_joint/velocity
+		wrist_2_joint/position
+		wrist_2_joint/velocity
+		wrist_3_joint/position
+		wrist_3_joint/velocity
+	chained to interfaces:
+	exported reference interfaces:
+	exported state interfaces:
+joint_state_broadcaster   joint_state_broadcaster/JointStateBroadcaster          active  
+	update_rate: 100 Hz
+	is_async: False
+	claimed interfaces:
+	required command interfaces:
+	required state interfaces:
+		shoulder_pan_joint1/position
+		shoulder_pan_joint1/velocity
+		shoulder_pan_joint1/effort
+		shoulder_pan_joint/position
+		shoulder_pan_joint/velocity
+		shoulder_pan_joint/effort
+		shoulder_lift_joint/position
+		shoulder_lift_joint/velocity
+		shoulder_lift_joint/effort
+		elbow_joint/position
+		elbow_joint/velocity
+		elbow_joint/effort
+		wrist_1_joint/position
+		wrist_1_joint/velocity
+		wrist_1_joint/effort
+		wrist_2_joint/position
+		wrist_2_joint/velocity
+		wrist_2_joint/effort
+		wrist_3_joint/position
+		wrist_3_joint/velocity
+		wrist_3_joint/effort
+	chained to interfaces:
+	exported reference interfaces:
+	exported state interfaces:
+=== hardware ===
+command interfaces
+	elbow_joint/effort [available] [claimed]
+	elbow_joint/position [available] [unclaimed]
+	shoulder_lift_joint/effort [available] [claimed]
+	shoulder_lift_joint/position [available] [unclaimed]
+	shoulder_pan_joint/effort [available] [claimed]
+	shoulder_pan_joint/position [available] [unclaimed]
+	shoulder_pan_joint1/effort [available] [claimed]
+	shoulder_pan_joint1/position [available] [unclaimed]
+	wrist_1_joint/effort [available] [claimed]
+	wrist_1_joint/position [available] [unclaimed]
+	wrist_2_joint/effort [available] [claimed]
+	wrist_2_joint/position [available] [unclaimed]
+	wrist_3_joint/effort [available] [claimed]
+	wrist_3_joint/position [available] [unclaimed]
+state interfaces
+	elbow_joint/effort
+	elbow_joint/position
+	elbow_joint/velocity
+	shoulder_lift_joint/effort
+	shoulder_lift_joint/position
+	shoulder_lift_joint/velocity
+	shoulder_pan_joint/effort
+	shoulder_pan_joint/position
+	shoulder_pan_joint/velocity
+	shoulder_pan_joint1/effort
+	shoulder_pan_joint1/position
+	shoulder_pan_joint1/velocity
+	wrist_1_joint/effort
+	wrist_1_joint/position
+	wrist_1_joint/velocity
+	wrist_2_joint/effort
+	wrist_2_joint/position
+	wrist_2_joint/velocity
+	wrist_3_joint/effort
+	wrist_3_joint/position
+	wrist_3_joint/velocity
+=== effort field ===
+array('d', [10.722989038420334, 40.775461390541686, -12.324416161341398, 6.23112672570869e-15, 0.0018227121901231813, -6.976959478957458e-05, -9.499787729859704e-06])
+---
+=== Q1 illegal double activate ===
+requester: making request: controller_manager_msgs.srv.SwitchController_Request(activate_controllers=['forward_effort_controller'], deactivate_controllers=[], strictness=2, activate_asap=False, timeout=builtin_interfaces.msg.Duration(sec=0, nanosec=0))
+
+response:
+controller_manager_msgs.srv.SwitchController_Response(ok=False, message="Unable to activate controller 'forward_effort_controller' since the command interface 'shoulder_pan_joint1/effort' is currently claimed by another controller.")
+
+=== legal A->B ===
+requester: making request: controller_manager_msgs.srv.SwitchController_Request(activate_controllers=['forward_effort_controller'], deactivate_controllers=['ur_manipulator_controller'], strictness=2, activate_asap=False, timeout=builtin_interfaces.msg.Duration(sec=0, nanosec=0))
+
+response:
+controller_manager_msgs.srv.SwitchController_Response(ok=True, message='Successfully switched controllers!')
+
+forward_effort_controller effort_controllers/JointGroupEffortController          active  
+ur_manipulator_controller joint_trajectory_controller/JointTrajectoryController  inactive
+joint_state_broadcaster   joint_state_broadcaster/JointStateBroadcaster          active  
+=== legal B->A ===
+requester: making request: controller_manager_msgs.srv.SwitchController_Request(activate_controllers=['ur_manipulator_controller'], deactivate_controllers=['forward_effort_controller'], strictness=2, activate_asap=False, timeout=builtin_interfaces.msg.Duration(sec=0, nanosec=0))
+
+response:
+controller_manager_msgs.srv.SwitchController_Response(ok=True, message='Successfully switched controllers!')
+
+forward_effort_controller effort_controllers/JointGroupEffortController          inactive
+ur_manipulator_controller joint_trajectory_controller/JointTrajectoryController  active  
+joint_state_broadcaster   joint_state_broadcaster/JointStateBroadcaster          active  
+--- candle check ---
+elbow_joint: -0.000000  expected 0  delta=0.000000
+shoulder_lift_joint: -1.574038  expected -1.5708  delta=0.003238
+shoulder_pan_joint: 0.000000  expected 0  delta=0.000000
+shoulder_pan_joint1: -0.000000  expected 0  delta=0.000000
+wrist_1_joint: -0.000000  expected 0  delta=0.000000
+wrist_2_joint: 0.000000  expected 0  delta=0.000000
+wrist_3_joint: -0.000000  expected 0  delta=0.000000
+CANDLE_PASS

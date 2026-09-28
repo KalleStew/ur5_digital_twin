@@ -23,8 +23,29 @@ def generate_launch_description():
 
     rmw_implementation_arg = DeclareLaunchArgument(
         'rmw_implementation',
-        default_value='rmw_fastrtps_cpp',
-        description='RMW implementation for this launch (e.g., rmw_fastrtps_cpp or rmw_zenoh_cpp)',
+        # Match project invariant / ur5env. FastDDS here + Zenoh in the shell
+        # makes the graph invisible to ros2 CLI ("nothing launched").
+        default_value='rmw_zenoh_cpp',
+        description='RMW for this launch. Default rmw_zenoh_cpp; override only if intentional.',
+    )
+
+    gz_headless_arg = DeclareLaunchArgument(
+        'gz_headless',
+        default_value='false',
+        description=(
+            'Forwarded to sim.launch.py: run gz server only (-s). '
+            'Default false so bare run_sim opens Gazebo GUI; set true for headless.'
+        ),
+    )
+    gz_render_engine_arg = DeclareLaunchArgument(
+        'gz_render_engine',
+        default_value='',
+        description='Forwarded to sim.launch.py / env GZ_SIM_RENDER_ENGINE',
+    )
+    start_rviz_arg = DeclareLaunchArgument(
+        'start_rviz',
+        default_value='true',
+        description='Launch MoveIt RViz. Default true (matches original GUI bring-up); set false for headless.',
     )
 
     set_rmw = SetEnvironmentVariable(
@@ -41,7 +62,11 @@ def generate_launch_description():
     sim_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(description_share, 'launch', 'sim.launch.py')
-        )
+        ),
+        launch_arguments={
+            'gz_headless': LaunchConfiguration('gz_headless'),
+            'gz_render_engine': LaunchConfiguration('gz_render_engine'),
+        }.items(),
     )
 
     # Delay MoveIt startup so /robot_description and /controller_manager are present.
@@ -77,7 +102,8 @@ def generate_launch_description():
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
                     os.path.join(moveit_share, 'launch', 'moveit_rviz.launch.py')
-                )
+                ),
+                condition=IfCondition(LaunchConfiguration('start_rviz')),
             )
         ],
     )
@@ -93,6 +119,9 @@ def generate_launch_description():
         rmw_implementation_arg,
         set_rmw,
         start_zenoh_router_arg,
+        gz_headless_arg,
+        gz_render_engine_arg,
+        start_rviz_arg,
         zenoh_router,
         delayed_sim_launch,
         move_group_launch,

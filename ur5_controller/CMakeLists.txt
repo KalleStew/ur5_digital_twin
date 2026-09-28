@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(moveit_msgs REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 
 
 # 2. Tell CMake to build an executable named "multi_waypoint_planner" from the C++ source
@@ -28,6 +29,7 @@ target_include_directories(multi_waypoint_planner PUBLIC
 #    transitive dependency propagation under Jazzy's CMake 3.22+ toolchain.
 target_link_libraries(multi_waypoint_planner
   rclcpp::rclcpp
+  ament_index_cpp::ament_index_cpp
   ${moveit_ros_planning_interface_LIBRARIES}
   ${geometry_msgs_TARGETS}
   ${moveit_msgs_TARGETS}
@@ -38,6 +40,7 @@ ament_target_dependencies(multi_waypoint_planner
   moveit_ros_planning_interface
   geometry_msgs
   moveit_msgs
+  ament_index_cpp
 )
 
 # 5. Install the executable so the ROS 2 system can find it
@@ -48,6 +51,10 @@ install(TARGETS
 
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
+)
+
+install(DIRECTORY src/waypoints/
+  DESTINATION share/${PROJECT_NAME}/waypoints
 )
 
 ament_package()

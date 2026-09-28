@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# Runnable entry point — does not require a prior `source`.
+# Usage:
+#   ~/ros2_ws/src/ur5_digital_twin/scripts/ur5 simgui
+#   ~/ros2_ws/src/ur5_digital_twin/scripts/ur5 demo
+set -eo pipefail
+# Do not enable nounset: ROS setup.bash references optional unset vars.
+
+_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+unset UR5_ENV_LOADED
+# shellcheck disable=SC1091
+source "${_ROOT}/ur5_env.sh"
+
+cmd="${1:-}"
+shift || true
+
+case "${cmd}" in
+  ""|help|-h|--help)
+    cat <<'EOF'
+Usage: ur5 <command> [args...]
+
+Setup:
+  setup     Add scripts/ to PATH in ~/.bashrc
+  env       Source ROS + workspace + Zenoh
+  zenoh     Restart Zenoh router
+  kill      Stop Gazebo / RViz / bridges
+
+Sim:
+  sim       Headless (no windows)
+  simgui    Gazebo GUI + RViz (ogre on ARM64 by default)
+  run_sim   Same as simgui (matches historical run_sim alias)
+  candle    Re-activate JTC + command upright Candle Pose
+  demo      Run ~12 s presentation trajectory (sim must be up)
+
+Motion:
+  run <csv>   interactive_control batch
+  reset       Candle Pose
+  plan <name> Planner helper (RViz still required)
+
+Diagnostics:
+  ctl | iface | states | hz | wp | doctor | brain a|b
+
+Build:
+  build [pkg…] | clean
+
+Presentation one-shot (GUI + motion):
+  ~/ros2_ws/src/ur5_digital_twin/scripts/run_presentation_demo.sh
+EOF
+    ;;
+  setup)   ur5setup "$@" ;;
+  env)     ur5env "$@" ;;
+  zenoh)   ur5zenoh_restart "$@" ;;
+  kill)    ur5kill "$@" ;;
+  build)   ur5build "$@" ;;
+  clean)   ur5clean "$@" ;;
+  sim)     ur5sim "$@" ;;
+  simgui|run_sim)  ur5simgui "$@" ;;
+  candle)  ur5candle "$@" ;;
+  demo)    ur5demo "$@" ;;
+  plan)    ur5plan "$@" ;;
+  run)     ur5run "$@" ;;
+  reset)   ur5reset "$@" ;;
+  ctl)     ur5ctl "$@" ;;
+  iface)   ur5iface "$@" ;;
+  brain)   ur5brain "$@" ;;
+  states)  ur5states "$@" ;;
+  hz)      ur5hz "$@" ;;
+  wp)      ur5wp "$@" ;;
+  doctor)  ur5doctor "$@" ;;
+  *)
+    echo "Unknown command: ${cmd}" >&2
+    echo "Run: ur5 help" >&2
+    exit 1
+    ;;
+esac

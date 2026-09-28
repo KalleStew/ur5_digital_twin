@@ -223,6 +223,8 @@
             <plugin>gz_ros2_control/GazeboSimSystem</plugin>
         </hardware>
 
+        <!-- Candle Pose IC: vertical arm clears the workbench at first physics step.
+             Values MUST match SRDF group_state candle_pose (ur57_arm.srdf). -->
         <joint name="shoulder_pan_joint1">
             <!-- GAZEBO PHYSICS GAINS MUST BE DIRECTLY UNDER THE JOINT -->
             <param name="p">20000.0</param>
@@ -231,7 +233,9 @@
             
             <command_interface name="position"/>
             <command_interface name="effort"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+                <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
             <state_interface name="effort"/>
         </joint>
@@ -243,7 +247,9 @@
             
             <command_interface name="position"/>
             <command_interface name="effort"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+                <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
             <state_interface name="effort"/>
         </joint>
@@ -255,7 +261,9 @@
             
             <command_interface name="position"/>
             <command_interface name="effort"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+                <param name="initial_value">-1.5708</param>
+            </state_interface>
             <state_interface name="velocity"/>
             <state_interface name="effort"/>
         </joint>
@@ -267,7 +275,9 @@
             
             <command_interface name="position"/>
             <command_interface name="effort"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+                <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
             <state_interface name="effort"/>
         </joint>
@@ -279,7 +289,9 @@
             
             <command_interface name="position"/>
             <command_interface name="effort"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+                <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
             <state_interface name="effort"/>
         </joint>
@@ -291,7 +303,9 @@
             
             <command_interface name="position"/>
             <command_interface name="effort"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+                <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
             <state_interface name="effort"/>
         </joint>
@@ -303,7 +317,9 @@
             
             <command_interface name="position"/>
             <command_interface name="effort"/>
-            <state_interface name="position"/>
+            <state_interface name="position">
+                <param name="initial_value">0.0</param>
+            </state_interface>
             <state_interface name="velocity"/>
             <state_interface name="effort"/>
         </joint>

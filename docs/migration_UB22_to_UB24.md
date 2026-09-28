@@ -4,6 +4,8 @@
 **Migration Date:** 2026-07-07  
 **Maintainer:** Kalle Stewart — ICE Lab
 
+**Update (2026-09-24):** Candle Pose is in `ur5_moveit_config/config/ur57_arm.srdf` (not `ur5.srdf`) plus URDF `initial_value`. Launch default RMW is `rmw_zenoh_cpp`; operator path is `ur5 simgui`. See `OPERATOR_WALKTHROUGH.md`.
+
 This document is a precise technical record of every structural and API change applied to the codebase during the migration from the Humble stack to the Jazzy stack. It serves as a reference for debugging regressions and for any future migration.
 
 ---

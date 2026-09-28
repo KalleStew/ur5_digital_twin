@@ -1,0 +1,62 @@
+=== ENV BASELINE ===
+2026-09-22T17:38:53-04:00
+aarch64
+Distributor ID:	Ubuntu
+Description:	Ubuntu 24.04.4 LTS
+Release:	24.04
+Codename:	noble
+ROS_DISTRO=jazzy  RMW=rmw_zenoh_cpp
+/opt/ros/jazzy/bin/ros2
+/opt/ros/jazzy/opt/gz_tools_vendor/bin/gz
+8.11.0
+--- glxinfo ---
+no glxinfo
+--- resources ---
+4
+               total        used        free      shared  buff/cache   available
+Mem:           7.7Gi       4.2Gi       1.8Gi       368Mi       2.3Gi       3.6Gi
+Swap:          1.8Gi       218Mi       1.6Gi
+--- python ---
+3.10.0 1.26.4
+--- pkgs ---
+controller_manager
+controller_manager_msgs
+gz_ros2_control
+moveit
+moveit_common
+moveit_configs_utils
+moveit_core
+moveit_kinematics
+moveit_msgs
+moveit_planners
+moveit_planners_chomp
+moveit_planners_ompl
+moveit_planners_stomp
+moveit_plugins
+moveit_ros
+moveit_ros_benchmarks
+moveit_ros_move_group
+moveit_ros_occupancy_map_monitor
+moveit_ros_planning
+moveit_ros_planning_interface
+moveit_ros_robot_interaction
+moveit_ros_visualization
+moveit_ros_warehouse
+moveit_setup_app_plugins
+moveit_setup_assistant
+moveit_setup_controllers
+moveit_setup_core_plugins
+moveit_setup_framework
+moveit_setup_srdf_plugins
+moveit_simple_controller_manager
+rmw_zenoh_cpp
+ros_gz
+ros_gz_bridge
+ros_gz_image
+ros_gz_interfaces
+ros_gz_sim
+ros_gz_sim_demos
+ur5_moveit_config
+--- zenohd ---
+26168 /bin/bash -O extglob -c snap=$(command cat <&3) && builtin shopt -s extglob && builtin eval -- "$snap" && { builtin set +u 2>/dev/null || true; builtin eval "${__CURSOR_SANDBOX_ENV_RESTORE:-}" 2>/dev/null; builtin export PWD="$(builtin pwd)"; builtin shopt -s expand_aliases 2>/dev/null; builtin eval "$1" < /dev/null; }; COMMAND_EXIT_CODE=$?; dump_bash_state >&4; builtin exit $COMMAND_EXIT_CODE -- mkdir -p /home/kallestewart/ros2_ws/src/ur5_digital_twin/docs/repair_artifacts && {   echo '=== ENV BASELINE ==='   date -Is   uname -m   lsb_release -a 2>/dev/null   echo "ROS_DISTRO=$ROS_DISTRO  RMW=$RMW_IMPLEMENTATION"   which ros2 gz glxinfo 2>/dev/null   gz sim --versions 2>&1 || gz sim --version 2>&1   echo '--- glxinfo ---'   glxinfo -B 2>/dev/null || echo 'no glxinfo'   echo '--- resources ---'   nproc   free -h   echo '--- python ---'   python3 -c "import h5py, numpy; print(h5py.__version__, numpy.__version__)" 2>&1   echo '--- pkgs ---'   source /opt/ros/jazzy/setup.bash   ros2 pkg list 2>/dev/null | grep -E 'gz_ros2_control|ros_gz|moveit|controller_manager|rmw_zenoh' || true   echo '--- zenohd ---'   pgrep -af rmw_zenohd || echo 'rmw_zenohd not running' } > /home/kallestewart/ros2_ws/src/ur5_digital_twin/docs/repair_artifacts/ENV_baseline.log 2>&1 cat /home/kallestewart/ros2_ws/src/ur5_digital_twin/docs/repair_artifacts/ENV_baseline.log 
+26200 /usr/share/cursor/resources/app/resources/helpers/cursorsandbox --policy /home/kallestewart/.cursor/sandbox-policies/sandbox-policy-2f8d30acbaa58e61 -- /bin/bash -O extglob -c snap=$(command cat <&3) && builtin shopt -s extglob && builtin eval -- "$snap" && { builtin set +u 2>/dev/null || true; builtin eval "${__CURSOR_SANDBOX_ENV_RESTORE:-}" 2>/dev/null; builtin export PWD="$(builtin pwd)"; builtin shopt -s expand_aliases 2>/dev/null; builtin eval "$1" < /dev/null; }; COMMAND_EXIT_CODE=$?; dump_bash_state >&4; builtin exit $COMMAND_EXIT_CODE -- mkdir -p /home/kallestewart/ros2_ws/src/ur5_digital_twin/docs/repair_artifacts && {   echo '=== ENV BASELINE ==='   date -Is   uname -m   lsb_release -a 2>/dev/null   echo "ROS_DISTRO=$ROS_DISTRO  RMW=$RMW_IMPLEMENTATION"   which ros2 gz glxinfo 2>/dev/null   gz sim --versions 2>&1 || gz sim --version 2>&1   echo '--- glxinfo ---'   glxinfo -B 2>/dev/null || echo 'no glxinfo'   echo '--- resources ---'   nproc   free -h   echo '--- python ---'   python3 -c "import h5py, numpy; print(h5py.__version__, numpy.__version__)" 2>&1   echo '--- pkgs ---'   source /opt/ros/jazzy/setup.bash   ros2 pkg list 2>/dev/null | grep -E 'gz_ros2_control|ros_gz|moveit|controller_manager|rmw_zenoh' || true   echo '--- zenohd ---'   pgrep -af rmw_zenohd || echo 'rmw_zenohd not running' } > /home/kallestewart/ros2_ws/src/ur5_digital_twin/docs/repair_artifacts/ENV_baseline.log 2>&1 cat /home/kallestewart/ros2_ws/src/ur5_digital_twin/docs/repair_artifacts/ENV_baseline.log 

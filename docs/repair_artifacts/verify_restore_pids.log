@@ -1,0 +1,6 @@
+101653 /opt/ros/jazzy/lib/robot_state_publisher/robot_state_publisher --ros-args -p use_sim_time:=True --params-file /tmp/launch_params_o__qmvwu
+101654 /bin/sh -c ruby /opt/ros/jazzy/opt/gz_tools_vendor/bin/gz sim -r --render-engine ogre /home/kallestewart/ros2_ws/install/ur5_description/share/ur5_description/worlds/empty.sdf --force-version 8
+101655 gz sim -r --render-engine ogre /home/kallestewart/ros2_ws/install/ur5_description/share/ur5_description/worlds/empty.sdf
+101725 gz sim server
+101726 gz sim gui
+101915 /opt/ros/jazzy/lib/rviz2/rviz2 -d /home/kallestewart/ros2_ws/install/ur5_moveit_config/share/ur5_moveit_config/config/moveit.rviz --ros-args -p use_sim_time:=True --params-file /tmp/launch_params_qo0e538j --params-file /tmp/launch_params_5ijn9efd --params-file /tmp/launch_params_dxvruogp

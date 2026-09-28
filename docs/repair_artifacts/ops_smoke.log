@@ -1,0 +1,67 @@
++ source /opt/ros/jazzy/setup.bash
++ export RMW_IMPLEMENTATION=rmw_zenoh_cpp
++ source /home/kallestewart/ros2_ws/install/setup.bash
++ rmw_zenohd already running
+=== launching ur5sim in background ===
+LAUNCH_PID=52533
+FAIL_NO_CONTROLLERS
+[move_group-6] [INFO] [1790119234.272955327] [move_group.moveit.moveit.plugins.simple_controller_manager]: Returned 1 controllers in list
+[move_group-6] [INFO] [1790119234.273401830] [move_group.moveit.moveit.ros.trajectory_execution_manager]: Trajectory execution is managing controllers
+[move_group-6] [INFO] [1790119234.273412746] [move_group]: MoveGroup debug mode is ON
+[move_group-6] [INFO] [1790119234.297307832] [move_group.moveit.moveit.planners.pilz.move_group_sequence_action]: initialize move group sequence action
+[move_group-6] [INFO] [1790119234.301353978] [move_group.moveit.moveit.planners.pilz.joint_limits_aggregator]: Reading limits from namespace robot_description_planning
+[move_group-6] [INFO] [1790119234.301547521] [move_group.moveit.moveit.planners.pilz.joint_limits_aggregator]: Reading limits from namespace robot_description_planning
+[move_group-6] [INFO] [1790119234.302595568] [move_group.moveit.moveit.ros.move_group.executable]: 
+[move_group-6] 
+[move_group-6] ********************************************************
+[move_group-6] * MoveGroup using: 
+[move_group-6] *     - apply_planning_scene_service
+[move_group-6] *     - clear_octomap_service
+[move_group-6] *     - get_group_urdf
+[move_group-6] *     - load_geometry_from_file
+[move_group-6] *     - CartesianPathService
+[move_group-6] *     - execute_trajectory_action
+[move_group-6] *     - get_planning_scene_service
+[move_group-6] *     - kinematics_service
+[move_group-6] *     - move_action
+[move_group-6] *     - motion_plan_service
+[move_group-6] *     - query_planners_service
+[move_group-6] *     - state_validation_service
+[move_group-6] *     - save_geometry_to_file
+[move_group-6] *     - SequenceAction
+[move_group-6] *     - SequenceService
+[move_group-6] ********************************************************
+[move_group-6] 
+[move_group-6] [INFO] [1790119234.302629235] [move_group.moveit.moveit.ros.move_group.context]: MoveGroup context using pipeline ompl
+[move_group-6] [INFO] [1790119234.302636360] [move_group.moveit.moveit.ros.move_group.context]: MoveGroup context initialization complete
+[move_group-6] [96mLoading 'move_group/ApplyPlanningSceneService'...[0m
+[move_group-6] [96mLoading 'move_group/ClearOctomapService'...[0m
+[move_group-6] [96mLoading 'move_group/GetUrdfService'...[0m
+[move_group-6] [96mLoading 'move_group/LoadGeometryFromFileService'...[0m
+[move_group-6] [96mLoading 'move_group/MoveGroupCartesianPathService'...[0m
+[move_group-6] [96mLoading 'move_group/MoveGroupExecuteTrajectoryAction'...[0m
+[move_group-6] [96mLoading 'move_group/MoveGroupGetPlanningSceneService'...[0m
+[move_group-6] [96mLoading 'move_group/MoveGroupKinematicsService'...[0m
+[move_group-6] [96mLoading 'move_group/MoveGroupMoveAction'...[0m
+[move_group-6] [96mLoading 'move_group/MoveGroupPlanService'...[0m
+[move_group-6] [96mLoading 'move_group/MoveGroupQueryPlannersService'...[0m
+[move_group-6] [96mLoading 'move_group/MoveGroupStateValidationService'...[0m
+[move_group-6] [96mLoading 'move_group/SaveGeometryToFileService'...[0m
+[move_group-6] [96mLoading 'pilz_industrial_motion_planner/MoveGroupSequenceAction'...[0m
+[move_group-6] [96mLoading 'pilz_industrial_motion_planner/MoveGroupSequenceService'...[0m
+[move_group-6] 
+[move_group-6] [92mYou can start planning now![0m
+[move_group-6] 
+[spawner-5] [FATAL] [1790119258.816013102] [spawner_joint_state_broadcaster]: Could not contact service /controller_manager/list_controllers
+[ERROR] [spawner-5]: process has died [pid 52633, exit code 1, cmd '/opt/ros/jazzy/lib/controller_manager/spawner joint_state_broadcaster --controller-manager-timeout 30 --ros-args -p use_sim_time:=True'].
+[INFO] [spawner-7]: process started with pid [53121]
+[spawner-7] [INFO] [1790119259.295515278] [spawner_ur_manipulator_controller]: waiting for service /controller_manager/list_controllers to become available...
+[spawner-7] [FATAL] [1790119289.345368912] [spawner_ur_manipulator_controller]: Could not contact service /controller_manager/list_controllers
+[ERROR] [spawner-7]: process has died [pid 53121, exit code 1, cmd '/opt/ros/jazzy/lib/controller_manager/spawner ur_manipulator_controller --controller-manager-timeout 30 --ros-args -p use_sim_time:=True'].
+[INFO] [spawner-8]: process started with pid [53512]
+[spawner-8] [INFO] [1790119289.909285861] [spawner_forward_effort_controller]: waiting for service /controller_manager/list_controllers to become available...
+[spawner-8] [FATAL] [1790119319.955153219] [spawner_forward_effort_controller]: Could not contact service /controller_manager/list_controllers
+[ERROR] [spawner-8]: process has died [pid 53512, exit code 1, cmd '/opt/ros/jazzy/lib/controller_manager/spawner forward_effort_controller --inactive --controller-manager-timeout 30 --ros-args -p use_sim_time:=True'].
+[ERROR] [robot_state_publisher-1]: process has died [pid 52562, exit code -9, cmd '/opt/ros/jazzy/lib/robot_state_publisher/robot_state_publisher --ros-args -p use_sim_time:=True --params-file /tmp/launch_params_r64r_r4b'].
+[ERROR] [parameter_bridge-4]: process has died [pid 52566, exit code -9, cmd '/opt/ros/jazzy/lib/ros_gz_bridge/parameter_bridge /clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock --ros-args -r __node:=clock_bridge -p use_sim_time:=True'].
+[ERROR] [move_group-6]: process has died [pid 52739, exit code -9, cmd '/opt/ros/jazzy/lib/moveit_ros_move_group/move_group --ros-args -p use_sim_time:=True --params-file /tmp/launch_params_4f2wcyxw --params-file /tmp/launch_params_siennqei'].

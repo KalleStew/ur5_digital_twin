@@ -1,0 +1,7 @@
+2026-09-23T17:11:35.892785Z  INFO ThreadId(02) zenoh::net::runtime: Using ZID: 1c828f2d9b166afd6e601240b25e22ab
+2026-09-23T17:11:35.893852Z  INFO ThreadId(02) zenoh::net::runtime::orchestrator: Zenoh can be reached at: tcp/[fd1f:5176:ee6c:759a:a4c1:8a8e:cace:829d]:7447
+2026-09-23T17:11:35.893953Z  INFO ThreadId(02) zenoh::net::runtime::orchestrator: Zenoh can be reached at: tcp/[fd1f:5176:ee6c:759a:d152:771e:243b:719d]:7447
+2026-09-23T17:11:35.893961Z  INFO ThreadId(02) zenoh::net::runtime::orchestrator: Zenoh can be reached at: tcp/[fe80::700:8815:d989:caf]:7447
+2026-09-23T17:11:35.893962Z  INFO ThreadId(02) zenoh::net::runtime::orchestrator: Zenoh can be reached at: tcp/192.168.64.9:7447
+Started Zenoh router with id 1c828f2d9b166afd6e601240b25e22ab
+[ros2run]: Killed

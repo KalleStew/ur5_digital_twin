@@ -1,0 +1,164 @@
+=== D-001 VERIFY headless sim.launch ===
+[INFO] [launch]: All log files can be found below /home/kallestewart/.ros/log/2026-09-22-17-42-24-324124-kallestewart-Apple-Virtualization-Generic-Platform-26970
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [robot_state_publisher-1]: process started with pid [26973]
+[INFO] [gazebo-2]: process started with pid [26974]
+[INFO] [create-3]: process started with pid [26975]
+[create-3] [INFO] [1790113344.819083952] [ros_gz_sim]: Requesting list of world names.
+[robot_state_publisher-1] [INFO] [1790113344.833523186] [robot_state_publisher]: Robot initialized
+[create-3] [INFO] [1790113345.190627272] [ros_gz_sim]: Entity creation successful.
+[INFO] [create-3]: process has finished cleanly [pid 26975]
+[INFO] [spawner-4]: process started with pid [27022]
+[spawner-4] [INFO] [1790113345.532353952] [spawner_joint_state_broadcaster]: waiting for service /controller_manager/list_controllers to become available...
+[gazebo-2] [INFO] [1790113346.981372140] [gz_ros_control]: [gz_ros2_control] Fixed joint ['world_to_table'] (Entity='31') is skipped.
+[gazebo-2] [INFO] [1790113346.984670613] [gz_ros_control]: Loading controller_manager
+[gazebo-2] [INFO] [1790113347.000478104] [controller_manager]: Using ROS clock for triggering controller manager cycles.
+[gazebo-2] [INFO] [1790113347.004392497] [controller_manager]: Subscribing to '/robot_description' topic for robot description.
+[gazebo-2] [WARN] [1790113347.006138589] [gz_ros_control]: Waiting RM to load and initialize hardware...
+[gazebo-2] [INFO] [1790113347.006355465] [controller_manager]: Received robot description from topic.
+[gazebo-2] [INFO] [1790113347.006408340] [controller_manager]: Enforcing command limits is disabled. Command limits from URDF will be ignored.
+[gazebo-2] [INFO] [1790113347.012544910] [gz_ros_control]: The position_proportional_gain has been set to: 0.1
+[gazebo-2] [INFO] [1790113347.012640911] [gz_ros_control]: Loading joint: shoulder_pan_joint1
+[gazebo-2] [INFO] [1790113347.012655744] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790113347.012660452] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012663661] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790113347.012668202] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012673536] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790113347.012675952] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012682077] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012687536] [gz_ros_control]: Loading joint: shoulder_pan_joint
+[gazebo-2] [INFO] [1790113347.012689661] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790113347.012691577] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012693494] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790113347.012695661] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012703661] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790113347.012706161] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012709203] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012713369] [gz_ros_control]: Loading joint: shoulder_lift_joint
+[gazebo-2] [INFO] [1790113347.012715369] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790113347.012717119] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012718911] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790113347.012720578] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012722869] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790113347.012724661] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012727661] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012731078] [gz_ros_control]: Loading joint: elbow_joint
+[gazebo-2] [INFO] [1790113347.012733203] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790113347.012734869] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012736536] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790113347.012738244] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012747828] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790113347.012749953] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012752453] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012756036] [gz_ros_control]: Loading joint: wrist_1_joint
+[gazebo-2] [INFO] [1790113347.012757869] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790113347.012759578] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012761244] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790113347.012762911] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012764578] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790113347.012766161] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012769036] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012772120] [gz_ros_control]: Loading joint: wrist_2_joint
+[gazebo-2] [INFO] [1790113347.012773995] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790113347.012775661] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012777286] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790113347.012780161] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012781786] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790113347.012783578] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012785786] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012789078] [gz_ros_control]: Loading joint: wrist_3_joint
+[gazebo-2] [INFO] [1790113347.012790911] [gz_ros_control]: 	State:
+[gazebo-2] [INFO] [1790113347.012792536] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012794161] [gz_ros_control]: 		 velocity
+[gazebo-2] [INFO] [1790113347.012795786] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.012797578] [gz_ros_control]: 	Command:
+[gazebo-2] [INFO] [1790113347.012870412] [gz_ros_control]: 		 position
+[gazebo-2] [INFO] [1790113347.012877953] [gz_ros_control]: 		 effort
+[gazebo-2] [INFO] [1790113347.013023704] [controller_manager]: Initialize hardware 'GazeboSystem' 
+[gazebo-2] [WARN] [1790113347.013046579] [controller_manager.hardware_component.system.GazeboSystem]: Executor is not available during hardware component initialization for 'GazeboSystem'. Skipping node creation!
+[gazebo-2] [INFO] [1790113347.013140538] [controller_manager]: Successful initialization of hardware 'GazeboSystem'
+[gazebo-2] [INFO] [1790113347.013403456] [controller_manager]: Activating component 'GazeboSystem'.
+[gazebo-2] [INFO] [1790113347.013413873] [resource_manager]: 'configure' hardware 'GazeboSystem' 
+[gazebo-2] [INFO] [1790113347.013417623] [gz_ros_control]: System Successfully configured!
+[gazebo-2] [INFO] [1790113347.013421498] [resource_manager]: Successful 'configure' of hardware 'GazeboSystem'
+[gazebo-2] [INFO] [1790113347.013427289] [resource_manager]: 'activate' hardware 'GazeboSystem' 
+[gazebo-2] [INFO] [1790113347.013441081] [resource_manager]: Successful 'activate' of hardware 'GazeboSystem'
+[gazebo-2] [WARN] [1790113347.013497248] [controller_manager]: Component 'GazeboSystem' does not have read or write statistics initialized, skipping registration.
+[gazebo-2] [INFO] [1790113347.013504873] [controller_manager]: Resource Manager has been successfully initialized. Starting Controller Manager services...
+[gazebo-2] [INFO] [1790113347.037033191] [controller_manager]: Loading controller : 'joint_state_broadcaster' of type 'joint_state_broadcaster/JointStateBroadcaster'
+[gazebo-2] [INFO] [1790113347.037069608] [controller_manager]: Loading controller 'joint_state_broadcaster'
+[gazebo-2] [INFO] [1790113347.053245225] [controller_manager]: Controller 'joint_state_broadcaster' node arguments: --ros-args --params-file /home/kallestewart/ros2_ws/install/ur5_moveit_config/share/ur5_moveit_config/config/ros2_controllers.yaml -p use_sim_time:=true --param use_sim_time:=true 
+[spawner-4] [INFO] [1790113347.056482615] [spawner_joint_state_broadcaster]: Loaded joint_state_broadcaster
+[gazebo-2] [INFO] [1790113347.057161535] [controller_manager]: Configuring controller: 'joint_state_broadcaster'
+[gazebo-2] [INFO] [1790113347.057456953] [joint_state_broadcaster]: 'joints' or 'interfaces' parameter is empty. All available state interfaces will be published
+[gazebo-2] [INFO] [1790113347.066159452] [controller_manager]: Activating controllers: [ joint_state_broadcaster ]
+[gazebo-2] [WARN] [1790113350.377377291] [gz_ros_control]:  Desired controller update period (0.01 s) is slower than the gazebo simulation period (0.001 s).
+[gazebo-2] [WARN] [1790113350.401754155] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [INFO] [1790113350.404823461] [controller_manager]: Successfully switched controllers!
+[spawner-4] [INFO] [1790113350.442089093] [spawner_joint_state_broadcaster]: Configured and activated joint_state_broadcaster
+[INFO] [spawner-4]: process has finished cleanly [pid 27022]
+[INFO] [spawner-5]: process started with pid [27079]
+[gazebo-2] [INFO] [1790113350.974705996] [controller_manager]: Loading controller : 'ur_manipulator_controller' of type 'joint_trajectory_controller/JointTrajectoryController'
+[gazebo-2] [INFO] [1790113350.974794914] [controller_manager]: Loading controller 'ur_manipulator_controller'
+[gazebo-2] [INFO] [1790113350.992365287] [controller_manager]: Controller 'ur_manipulator_controller' node arguments: --ros-args --params-file /home/kallestewart/ros2_ws/install/ur5_moveit_config/share/ur5_moveit_config/config/ros2_controllers.yaml -p use_sim_time:=true --param use_sim_time:=true 
+[spawner-5] [INFO] [1790113351.022295427] [spawner_ur_manipulator_controller]: Loaded ur_manipulator_controller
+[gazebo-2] [INFO] [1790113351.023822767] [controller_manager]: Configuring controller: 'ur_manipulator_controller'
+[gazebo-2] [INFO] [1790113351.024086352] [ur_manipulator_controller]: No specific joint names are used for command interfaces. Using 'joints' parameter.
+[gazebo-2] [INFO] [1790113351.024245811] [ur_manipulator_controller]: Command interfaces are [effort] and state interfaces are [position velocity].
+[gazebo-2] [INFO] [1790113351.024342978] [ur_manipulator_controller]: Using 'splines' interpolation method.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] Using the legacy anti-windup technique is deprecated. This option will be removed by the ROS 2 Kilted Kaiju release.
+[gazebo-2] [INFO] [1790113351.030544715] [ur_manipulator_controller]: Action status changes will be monitored at 20.00 Hz.
+[gazebo-2] [INFO] [1790113351.040044885] [ur_manipulator_controller]: No scaling interface set. This controller will not read speed scaling from the hardware.
+[gazebo-2] [INFO] [1790113351.046838708] [controller_manager]: Activating controllers: [ ur_manipulator_controller ]
+[gazebo-2] [INFO] [1790113351.057425174] [controller_manager]: Successfully switched controllers!
+[spawner-5] [INFO] [1790113351.071296072] [spawner_ur_manipulator_controller]: Configured and activated ur_manipulator_controller
+[INFO] [spawner-5]: process has finished cleanly [pid 27079]
+[gazebo-2] [WARN] [1790113351.401941241] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113352.404299127] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113353.408678897] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113354.420953244] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113355.421450786] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113356.424742673] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113357.427511598] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113358.435194920] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113359.438480305] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113360.447357839] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113361.449666633] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113362.456756449] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113363.464063056] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113364.474332135] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113365.474715583] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113366.484365323] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113367.489334124] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113368.490586449] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113369.494491784] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113370.504341605] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113371.509563571] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113372.513347528] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113373.515313851] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113374.518353428] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113375.522925095] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113376.529114352] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113377.529531747] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+[gazebo-2] [WARN] [1790113378.534337371] [controller_manager]: No clock received, using time argument instead! Check your node's clock configuration (use_sim_time parameter) and if a valid clock source is available
+--- processes ---
+1699 /usr/libexec/gvfsd-trash --spawner :1.20 /org/gtk/gvfs/exec_spaw/0
+2063 /usr/libexec/gvfsd-recent --spawner :1.20 /org/gtk/gvfs/exec_spaw/1
+22436 /usr/libexec/gvfsd-network --spawner :1.20 /org/gtk/gvfs/exec_spaw/2
+22445 /usr/libexec/gvfsd-dnssd --spawner :1.20 /org/gtk/gvfs/exec_spaw/3
+23203 /usr/libexec/gvfsd-http --spawner :1.20 /org/gtk/gvfs/exec_spaw/8
+26973 /opt/ros/jazzy/lib/robot_state_publisher/robot_state_publisher --ros-args --params-file /tmp/launch_params_1w9lgve8
+--- log errors ---
+--- log errors ---
+--- headless flag in cmdline ---
+26200 /usr/share/cursor/resources/app/resources/helpers/cursorsandbox --policy /home/kallestewart/.cursor/sandbox-policies/sandbox-policy-2f8d30acbaa58e61 -- /bin/bash -O extglob -c snap=$(command cat <&3) && builtin shopt -s extglob && builtin eval -- "$snap" && { builtin set +u 2>/dev/null || true; builtin eval "${__CURSOR_SANDBOX_ENV_RESTORE:-}" 2>/dev/null; builtin export PWD="$(builtin pwd)"; builtin shopt -s expand_aliases 2>/dev/null; builtin eval "$1" < /dev/null; }; COMMAND_EXIT_CODE=$?; dump_bash_state >&4; builtin exit $COMMAND_EXIT_CODE -- mkdir -p /home/kallestewart/ros2_ws/src/ur5_digital_twin/docs/repair_artifacts && {   echo '=== ENV BASELINE ==='   date -Is   uname -m   lsb_release -a 2>/dev/null   echo "ROS_DISTRO=$ROS_DISTRO  RMW=$RMW_IMPLEMENTATION"   which ros2 gz glxinfo 2>/dev/null   gz sim --versions 2>&1 || gz sim --version 2>&1   echo '--- glxinfo ---'   glxinfo -B 2>/dev/null || echo 'no glxinfo'   echo '--- resources ---'   nproc   free -h   echo '--- python ---'   python3 -c "import h5py, numpy; print(h5py.__version__, numpy.__version__)" 2>&1   echo '--- pkgs ---'   source /opt/ros/jazzy/setup.bash   ros2 pkg list 2>/dev/null | grep -E 'gz_ros2_control|ros_gz|moveit|controller_manager|rmw_zenoh' || true   echo '--- zenohd ---'   pgrep -af rmw_zenohd || echo 'rmw_zenohd not running' } > /home/kallestewart/ros2_ws/src/ur5_digital_twin/docs/repair_artifacts/ENV_baseline.log 2>&1 cat /home/kallestewart/ros2_ws/src/ur5_digital_twin/docs/repair_artifacts/ENV_baseline.log 
+26924 /bin/bash -O extglob -c snap=$(command cat <&3) && builtin shopt -s extglob && builtin eval -- "$snap" && { builtin set +u 2>/dev/null || true; builtin eval "${__CURSOR_SANDBOX_ENV_RESTORE:-}" 2>/dev/null; builtin export PWD="$(builtin pwd)"; builtin shopt -s expand_aliases 2>/dev/null; builtin eval "$1" < /dev/null; }; COMMAND_EXIT_CODE=$?; dump_bash_state >&4; builtin exit $COMMAND_EXIT_CODE -- ART=/home/kallestewart/ros2_ws/src/ur5_digital_twin/docs/repair_artifacts source /opt/ros/jazzy/setup.bash source /home/kallestewart/ros2_ws/install/setup.bash export RMW_IMPLEMENTATION=rmw_zenoh_cpp killall -9 gz gz-sim gz-sim-server rmw_zenohd ruby 2>/dev/null || true sleep 1  # Start zenoh router ros2 run rmw_zenoh_cpp rmw_zenohd > "$ART/D001_zenohd.log" 2>&1 & ZENOH_PID=$! sleep 2  # VERIFY D-001: headless sim.launch echo "=== D-001 VERIFY headless sim.launch ===" | tee "$ART/D001_verify.log" timeout 45 ros2 launch ur5_description sim.launch.py gz_headless:=true >> "$ART/D001_verify.log" 2>&1 & LAUNCH_PID=$! sleep 35  # Check process and logs echo "--- processes ---" | tee -a "$ART/D001_verify.log" pgrep -af 'gz-sim|spawner|robot_state' | grep -v grep | tee -a "$ART/D001_verify.log" || true echo "--- log errors ---" | tee -a "$ART/D001_verify.log" grep -iE 'error|fatal|Exception|Ogre2|GL3Plus' "$ART/D001_verify.log" | grep -v 'libEGL warning' | tail -30 | tee -a "$ART/D001_verify.log" || echo '(no error matches)' | tee -a "$ART/D001_verify.log" echo "--- headless flag in cmdline ---" | tee -a "$ART/D001_verify.log" pgrep -af 'gz.sim|gz-sim' | tee -a "$ART/D001_verify.log" || true  # Cleanup launch kill $LAUNCH_PID 2>/dev/null || true killall -9 gz gz-sim gz-sim-server spawner robot_state_publisher 2>/dev/null || true sleep 1 # keep zenoh for Q4 echo "ZENOH_PID=$ZENOH_PID" | tee -a "$ART/D001_verify.log" 
+26974 /bin/sh -c ruby /opt/ros/jazzy/opt/gz_tools_vendor/bin/gz sim -s -r /home/kallestewart/ros2_ws/install/ur5_description/share/ur5_description/worlds/empty.sdf --force-version 8
+26976 gz sim -s -r /home/kallestewart/ros2_ws/install/ur5_description/share/ur5_description/worlds/empty.sdf
+ZENOH_PID=26955

@@ -156,6 +156,29 @@ If Gazebo Harmonic crashes with the default `ogre2` render engine, try:
 gz sim --render-engine ogre -r empty.sdf
 ```
 
+For the digital twin launch files (cross-platform; no source edits between ARM64 VM and WSL2):
+
+```bash
+# Default operator path — Gazebo GUI + RViz (Candle upright at spawn)
+ur5 simgui
+# or:
+ros2 launch ur5_moveit_config gazebo_sim.launch.py \
+  gz_headless:=false start_rviz:=true gz_render_engine:=ogre \
+  rmw_implementation:=rmw_zenoh_cpp
+
+# Headless physics (CI / no display)
+ur5 sim
+# or:
+ros2 launch ur5_moveit_config gazebo_sim.launch.py \
+  gz_headless:=true start_rviz:=false \
+  rmw_implementation:=rmw_zenoh_cpp
+
+# Render-engine override via environment (empty = Gazebo default, usually ogre2 on WSL2)
+export GZ_SIM_RENDER_ENGINE=ogre
+```
+
+`LIBGL_ALWAYS_SOFTWARE=1` belongs in the **VM shell profile** if needed — never in a launch file (would force software GL on WSL2).
+
 ---
 
 ## Option C: Native Ubuntu 24.04
@@ -684,7 +707,8 @@ alias repo='cd ~/ros2_ws/src/ur5_digital_twin'
 alias build='cd ~/ros2_ws && colcon build --symlink-install && source install/setup.bash'
 alias cbuild='cd ~/ros2_ws && rm -rf build/ install/ log/ && colcon build --symlink-install && source install/setup.bash'
 alias src_ws='source /opt/ros/jazzy/setup.bash && source ~/ros2_ws/install/setup.bash'
-alias run_sim='ros2 launch ur5_moveit_config gazebo_sim.launch.py' 
+alias run_sim='source ~/ros2_ws/src/ur5_digital_twin/scripts/ur5_env.sh >/dev/null; ur5simgui'
+ 
 
 alias plan='cd ~/ros2_ws && source install/setup.bash && ros2 launch ur5_controller planner.launch.py'
 alias plan_cli='cd ~/ros2_ws/src/ur5_digital_twin/ur5_controller/src && python3 planner_cli.py'

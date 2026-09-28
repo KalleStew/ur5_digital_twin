@@ -1,0 +1,39 @@
+[INFO] [launch]: All log files can be found below /home/kallestewart/.ros/log/2026-09-23-13-19-18-438882-kallestewart-Apple-Virtualization-Generic-Platform-77229
+[INFO] [launch]: Default logging verbosity is set to INFO
+[INFO] [robot_state_publisher-1]: process started with pid [77233]
+[INFO] [gazebo-2]: process started with pid [77234]
+[INFO] [create-3]: process started with pid [77235]
+[create-3] [INFO] [1790183958.660612542] [ros_gz_sim]: Requesting list of world names.
+[robot_state_publisher-1] [INFO] [1790183958.668589090] [robot_state_publisher]: Robot initialized
+[create-3] [INFO] [1790183958.867833696] [ros_gz_sim]: Entity creation successful.
+[INFO] [create-3]: process has finished cleanly [pid 77235]
+[INFO] [ensure_controllers-4]: process started with pid [77362]
+[ensure_controllers-4] [INFO] [1790183961.242961503] [ur5_ensure_controllers]: controllers: {}
+[ensure_controllers-4] [INFO] [1790183961.244559179] [ur5_ensure_controllers]: controllers: {}
+[ensure_controllers-4] [INFO] [1790183961.244691847] [ur5_ensure_controllers]: Loading joint_state_broadcaster
+[ensure_controllers-4] [INFO] [1790183961.263331291] [ur5_ensure_controllers]: controllers: {'joint_state_broadcaster': 'unconfigured'}
+[ensure_controllers-4] [INFO] [1790183961.263493792] [ur5_ensure_controllers]: Configuring joint_state_broadcaster
+[ensure_controllers-4] [INFO] [1790183961.272047635] [ur5_ensure_controllers]: controllers: {'joint_state_broadcaster': 'inactive'}
+[ensure_controllers-4] [INFO] [1790183961.275819199] [ur5_ensure_controllers]: controllers: {'joint_state_broadcaster': 'inactive'}
+[ensure_controllers-4] [INFO] [1790183961.275961117] [ur5_ensure_controllers]: Loading ur_manipulator_controller
+[ensure_controllers-4] [INFO] [1790183961.297321036] [ur5_ensure_controllers]: controllers: {'joint_state_broadcaster': 'inactive', 'ur_manipulator_controller': 'unconfigured'}
+[ensure_controllers-4] [INFO] [1790183961.297559287] [ur5_ensure_controllers]: Configuring ur_manipulator_controller
+[ensure_controllers-4] [INFO] [1790183961.310564865] [ur5_ensure_controllers]: controllers: {'ur_manipulator_controller': 'inactive', 'joint_state_broadcaster': 'inactive'}
+[ensure_controllers-4] [INFO] [1790183961.312195958] [ur5_ensure_controllers]: controllers: {'ur_manipulator_controller': 'inactive', 'joint_state_broadcaster': 'inactive'}
+[ensure_controllers-4] [INFO] [1790183961.312318584] [ur5_ensure_controllers]: Loading forward_effort_controller
+[ensure_controllers-4] [INFO] [1790183961.321893808] [ur5_ensure_controllers]: controllers: {'ur_manipulator_controller': 'inactive', 'joint_state_broadcaster': 'inactive', 'forward_effort_controller': 'unconfigured'}
+[ensure_controllers-4] [INFO] [1790183961.322221351] [ur5_ensure_controllers]: Configuring forward_effort_controller
+[ensure_controllers-4] [INFO] [1790183961.325577705] [ur5_ensure_controllers]: controllers: {'forward_effort_controller': 'inactive', 'ur_manipulator_controller': 'inactive', 'joint_state_broadcaster': 'inactive'}
+[ensure_controllers-4] [INFO] [1790183961.326462168] [ur5_ensure_controllers]: controllers: {'forward_effort_controller': 'inactive', 'ur_manipulator_controller': 'inactive', 'joint_state_broadcaster': 'inactive'}
+[ensure_controllers-4] [INFO] [1790183961.377115387] [ur5_ensure_controllers]: switch activate=['joint_state_broadcaster', 'ur_manipulator_controller'] deactivate=[] -> ok=True Successfully switched controllers!
+[ensure_controllers-4] Activated controllers: [ joint_state_broadcaster ur_manipulator_controller ]
+[ensure_controllers-4] [INFO] [1790183961.378886773] [ur5_ensure_controllers]: controllers: {'forward_effort_controller': 'inactive', 'ur_manipulator_controller': 'active', 'joint_state_broadcaster': 'active'}
+[ensure_controllers-4] [INFO] [1790183966.431359417] [ur5_ensure_controllers]: Candle #1 error_code=0
+[ensure_controllers-4] [INFO] [1790183971.033580850] [ur5_ensure_controllers]: Candle #2 error_code=0
+[ensure_controllers-4] [INFO] [1790183971.534122260] [ur5_ensure_controllers]: Candle Pose hold complete
+[INFO] [ensure_controllers-4]: process has finished cleanly [pid 77362]
+[robot_state_publisher-1] [WARN] [1790284812.004441535] [robot_state_publisher]: Moved backwards in time, re-publishing joint transforms!
+[robot_state_publisher-1] [WARN] [1790284940.415848131] [robot_state_publisher]: Moved backwards in time, re-publishing joint transforms!
+[robot_state_publisher-1] [WARN] [1790284940.549342114] [robot_state_publisher]: Moved backwards in time, re-publishing joint transforms!
+[robot_state_publisher-1] [WARN] [1790284981.798740450] [robot_state_publisher]: Moved backwards in time, re-publishing joint transforms!
+[robot_state_publisher-1] [WARN] [1790284982.397281004] [robot_state_publisher]: Moved backwards in time, re-publishing joint transforms!

@@ -1,0 +1,3 @@
+forward_effort_controller effort_controllers/JointGroupEffortController          inactive
+ur_manipulator_controller joint_trajectory_controller/JointTrajectoryController  active  
+joint_state_broadcaster   joint_state_broadcaster/JointStateBroadcaster          active  

@@ -1,200 +1,121 @@
 # Environment Reset & Troubleshooting
 
-When working with Gazebo Harmonic, ROS 2 Jazzy, and Eclipse Zenoh, background processes can occasionally hang or orphan themselves. This document provides the exact reset procedure for a clean environment recovery.
+When working with Gazebo Harmonic, ROS 2 Jazzy, and Eclipse Zenoh, background processes can hang or orphan themselves. Prefer the `ur5` helpers in `scripts/ur5_env.sh` over ad-hoc `killall`.
 
 ---
 
-## 1. Safe Shutdown (Try This First)
+## 1. Safe shutdown (try this first)
 
 Click into the terminal where you ran the launch command and press `Ctrl + C`.
 
-**CRITICAL:** Never click the `×` on the Gazebo or RViz windows to close them. This kills only the renderer but leaves the `ros2_control_node`, `move_group`, and Zenoh router alive in the background, causing port conflicts on the next launch.
+**CRITICAL:** Do not close Gazebo or RViz with the window `×`. That kills only the renderer and leaves `controller_manager`, `move_group`, and sometimes a stuck `gz sim` alive — the next launch then sees **duplicate** `/controller_manager` nodes and a collapsed arm.
 
-Wait 3–5 seconds after `Ctrl + C` for all child processes to terminate before proceeding.
-
----
-
-## 2. The Total Purge Command
-
-If the system is frozen or you have zombie nodes that did not shut down cleanly, execute a total purge of all simulation and ROS 2 processes:
-
-```bash
-killall -9 ruby rviz2 gz spawner move_group ros2_control_node \
-  robot_state_publisher static_transform_publisher
-ros2 daemon stop
-ros2 daemon start
-```
-
-> **Note:** `ruby` is the Zenoh router process. `gz` is the Gazebo Harmonic server. If any of these are not running, `killall` will print `no process found` — this is expected and harmless.
-
-**Then verify the ROS 2 node list is clean:**
-```bash
-ros2 node list
-# Expected: empty output (no nodes running)
-```
+Wait 3–5 seconds after `Ctrl + C` before relaunching.
 
 ---
 
-## 3. Nuke the Corrupted Colcon Cache
+## 2. Operator purge (`ur5 kill`)
 
-If a controller spawner died mid-build, or a `colcon build` was interrupted, the `build/`, `install/`, and `log/` directories may contain stale artifacts that cause `package not found` or library linking errors.
+```bash
+source ~/ros2_ws/src/ur5_digital_twin/scripts/ur5_env.sh
+ur5kill          # or: ur5 kill
+# Leaves rmw_zenohd running. Restart router if discovery looks dead:
+ur5zenoh_restart
+```
+
+`ur5kill` stops Gazebo (`gz sim` / ruby wrappers), bridges, RSP, move_group, and RViz. It also matches launch parents by process args.
+
+If something still holds the world:
+
+```bash
+pkill -9 -f 'gz sim'
+pkill -9 -f 'gazebo_sim.launch.py'
+# verify:
+pgrep -af 'gz sim' || echo clean
+```
+
+**Do not** `killall ruby` — that is not the Zenoh router on Jazzy (`rmw_zenohd` is). Killing all `ruby` can take down unrelated tools.
+
+---
+
+## 3. Candle upright without restarting Gazebo
+
+If the arm left Candle Pose (demo, sag, disturbance):
+
+```bash
+ur5reset       # FollowJointTrajectory → Candle (shoulder_lift ≈ -1.5708)
+ur5states      # confirm
+```
+
+If JTC is inactive / spawners raced:
+
+```bash
+ur5candle      # ensure_controllers.py: activate JSB+JTC, hold Candle
+```
+
+Spawn IC is already Candle via URDF `initial_value` + SRDF `candle_pose` — reset is for **recovery**, not first boot.
+
+---
+
+## 4. Nuke the colcon cache (last resort)
 
 ```bash
 cd ~/ros2_ws
 rm -rf build/ install/ log/
-```
-
-This is always safe — colcon will regenerate everything from source on the next build.
-
----
-
-## 4. Rebuild and Relaunch (Clean Boot)
-
-After purging processes and clearing the cache:
-
-```bash
-cd ~/ros2_ws
-
-# Rebuild all three packages from scratch
-colcon build --symlink-install
-
-# Source the fresh install overlay
-source install/setup.bash
-
-# Launch the master simulation
-ros2 launch ur5_moveit_config gazebo_sim.launch.py
+# or: ur5clean && ur5build
 ```
 
 ---
 
-## 5. Zenoh-Specific Issues
-
-### Symptom: `ros2 topic list` returns nothing / nodes can't see each other
-
-Zenoh's router may have crashed. Reset the daemon:
+## 5. Rebuild and relaunch
 
 ```bash
-ros2 daemon stop && ros2 daemon start
-# Wait 2 seconds, then verify
-ros2 topic list
-```
-
-### Symptom: `rmw_zenoh_cpp: failed to open session`
-
-The Zenoh router (`zenohd`) may have a port conflict. Kill any stale router:
-
-```bash
-killall -9 ruby
-ros2 daemon stop && ros2 daemon start
-```
-
-If your router is managed externally, launch the stack with the embedded router disabled:
-```bash
-ros2 launch ur5_moveit_config gazebo_sim.launch.py start_zenoh_router:=false
-```
-
-### Symptom: Reverting to FastDDS temporarily (debugging only)
-
-```bash
-# Override for a single terminal session — does NOT affect other terminals
-export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-ros2 launch ur5_moveit_config gazebo_sim.launch.py
+ur5build
+ur5zenoh_restart
+ur5simgui          # GUI + RViz default
+# or: ur5sim       # headless
 ```
 
 ---
 
-## 6. Gazebo Harmonic — Common Issues
+## 6. Zenoh-specific issues
 
-### Symptom: Arm collapses through the table on spawn
+### Symptom: `ros2 topic list` empty / “nothing launched”
 
-**Cause:** The `gz_ros2_control/GazeboSimSystem` physics gains defaulted to `p=0.1` because the `<param name="p">` blocks in the URDF were not parsed correctly.
-
-**Fix:** Verify the URDF `<ros2_control>` block. Each `<joint>` must have `<param name="p">` tags as **direct children of the `<joint>` element**, not inside a `<command_interface>` block:
-
-```xml
-<!-- CORRECT — gains are siblings of command_interface -->
-<joint name="shoulder_lift_joint">
-    <param name="p">30000.0</param>
-    <param name="i">200.0</param>
-    <param name="d">1000.0</param>
-    <command_interface name="position"/>
-    <command_interface name="effort"/>
-    ...
-</joint>
-
-<!-- WRONG — gains buried inside command_interface are ignored -->
-<joint name="shoulder_lift_joint">
-    <command_interface name="position">
-        <param name="p">30000.0</param>  <!-- This does nothing -->
-    </command_interface>
-</joint>
-```
-
-### Symptom: `[gz_ros2_control]: Could not load hardware plugin gz_ros2_control/GazeboSimSystem`
+Usually a **stale** or missing `rmw_zenohd`, or RMW mismatch (shell Zenoh + launch FastDDS).
 
 ```bash
-# Verify the package is installed
-ros2 pkg list | grep gz_ros2_control
-
-# If missing:
-sudo apt install -y ros-jazzy-gz-ros2-control
+ur5zenoh_restart
+# Ctrl+C old launch, then:
+ur5simgui
 ```
 
-### Symptom: RViz opens but shows no robot / all-grey scene
+Confirm launch default is `rmw_zenoh_cpp` (`gazebo_sim.launch.py`).
 
-The `robot_state_publisher` may have started before the URDF was available. Stop everything, run the total purge, then relaunch.
+### Symptom: duplicate `/controller_manager`
+
+Orphaned `gz sim` from a prior session. Run §2 purge until `pgrep -af 'gz sim'` is empty, then relaunch **one** sim.
 
 ---
 
-## 7. Controller Manager Issues
+## 7. ARM64 / render
 
-### Symptom: Spawner times out (`Waiting for service /controller_manager/...`)
-
-The `gz_ros2_control` world plugin (declared in the URDF's `<gazebo>` block) has not yet registered the controller manager. This is common on slow VMs. The launch file already uses `--controller-manager-timeout 30`. If 30 seconds is not enough:
-
-```bash
-# Manually activate a controller after the fact
-ros2 control load_controller --set-state active joint_state_broadcaster
-ros2 control load_controller --set-state active ur_manipulator_controller
-```
-
-### Symptom: `forward_effort_controller` not found
-
-Verify its configuration block exists in `ros2_controllers.yaml`:
-
-```yaml
-forward_effort_controller:
-  ros__parameters:
-    joints: ["shoulder_pan_joint1", "shoulder_pan_joint", "shoulder_lift_joint",
-             "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"]
-    interface_name: effort
-```
-
-Then verify it was spawned `--inactive`:
-```bash
-ros2 control list_controllers
-# Expected: forward_effort_controller  [inactive]
-```
+| Symptom | Fix |
+|---|---|
+| ogre2 crash on GUI | `GZ_SIM_RENDER_ENGINE=ogre ur5simgui` (default in `ur5simgui`) |
+| No window after `ur5sim` | Headless by design — use `ur5simgui` |
+| `create` stuck “Requesting list of world names” | World never finished loading — `ur5kill`, ensure single gz, retry; headless is a reliable fallback |
 
 ---
 
-## 8. WSL2 / ARM64 VM Specific Issues
+## 8. Controllers
 
-### Symptom: Gazebo crashes immediately on WSL2 with OpenGL error
+Expect after healthy bring-up:
 
-```bash
-# Force Mesa software renderer for this session
-export LIBGL_ALWAYS_SOFTWARE=1
-ros2 launch ur5_moveit_config gazebo_sim.launch.py
+```text
+joint_state_broadcaster     active
+ur_manipulator_controller   active
+forward_effort_controller   inactive
 ```
 
-For a permanent fix, update your Windows GPU driver to a WSL2-certified version.
-
-### Symptom: `gz sim` command not found after install
-
-```bash
-source /opt/ros/jazzy/setup.bash
-which gz
-# If still missing:
-sudo apt install -y ros-jazzy-ros-gz-sim
-```
+Spawners live in `ur5_description/launch/sim.launch.py` (JSB → JTC → FEC inactive). `ensure_controllers.py` is **recovery-only** (`ur5 candle`), not on the launch critical path.

@@ -1,6 +1,10 @@
 # Development Workflow
 
-This document covers branching conventions, the **threaded Python Action Client architecture** used by the HIL research scripts, the procedure for safely swapping controllers via `/controller_manager/switch_controller`, and the hardware integration roadmap.
+Branching, Action Client threading, and `switch_controller` handoff patterns.
+
+**Day-to-day ops:** prefer `docs/OPERATOR_WALKTHROUGH.md` and `scripts/ur5` (`ur5 simgui`, `ur5 reset`, `ur5 candle`).
+
+Default middleware is **Zenoh** (`rmw_zenoh_cpp`). Always start from a clean single `gz sim` + one `rmw_zenohd`.
 
 ---
 

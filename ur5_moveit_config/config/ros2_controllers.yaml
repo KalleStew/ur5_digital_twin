@@ -53,7 +53,5 @@ forward_effort_controller:
       - wrist_1_joint
       - wrist_2_joint
       - wrist_3_joint
-    command_interfaces:
-      - effort
-    state_interfaces:
-      - position
+    # JointGroupEffortController hardcodes interface_name=effort.
+    # Do not set command_interfaces here (JTC-only key).

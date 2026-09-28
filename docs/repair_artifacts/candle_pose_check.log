@@ -1,0 +1,14 @@
+=== controllers ===
+2026-09-23T17:11:44.943861Z  WARN ThreadId(16) zenoh::net::runtime::orchestrator: Scouting delay elapsed before start conditions are met.
+forward_effort_controller effort_controllers/JointGroupEffortController          inactive
+ur_manipulator_controller joint_trajectory_controller/JointTrajectoryController  inactive
+joint_state_broadcaster   joint_state_broadcaster/JointStateBroadcaster          active  
+=== names ===
+['elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', 'shoulder_pan_joint1', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
+---
+=== positions (alpha order) ===
+array('d', [-0.10144671601119486, -3.262698320087679, 0.00022700888006296427, -0.00048713213129913973, 0.033539949299400164, -0.02012559196426209, 3.796499243798343e-09])
+---
+=== efforts ===
+array('d', [1.532507404169749, 15.276813802432912, -12.314605174922326, 2.4924506902834764e-14, 0.552403882593769, -0.02113756199434806, -0.002878078189531769])
+---

@@ -13,6 +13,11 @@ import threading
 import importlib
 import math
 
+try:
+    from ament_index_python.packages import get_package_share_directory
+except ImportError:
+    get_package_share_directory = None
+
 np = None
 h5py = None
 butter = None
@@ -36,7 +41,7 @@ except ImportError:
     pass
 
 class InteractiveHILController(Node):
-    def __init__(self):
+    def __init__(self, csv_path='', mode='', out_name='run_log'):
         super().__init__('interactive_hil_controller', 
                          parameter_overrides=[Parameter('use_sim_time', Parameter.Type.BOOL, True)])
         
@@ -54,16 +59,35 @@ class InteractiveHILController(Node):
             'shoulder_pan_joint1', 'shoulder_pan_joint', 'shoulder_lift_joint',
             'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
         ]
+        # Candle Pose — must match URDF initial_value + SRDF candle_pose
+        self.candle_pose = [0.0, 0.0, -1.5708, 0.0, 0.0, 0.0, 0.0]
+        self.out_name = out_name
+
+        self.waypoints_dir = self._resolve_waypoints_dir()
 
         # --- Threading Events ---
         self.trajectory_event = threading.Event()
         self.ik_event = threading.Event()
         self.ik_result_msg = None
         
-        # Launch the interactive CLI in a background thread to prevent ROS executor deadlocks
-        self.control_thread = threading.Thread(target=self.run_interactive_cli)
+        if csv_path or mode:
+            target = lambda: self.run_batch(csv_path, mode, out_name)
+        else:
+            target = self.run_interactive_cli
+        self.control_thread = threading.Thread(target=target)
         self.control_thread.daemon = True
         self.control_thread.start()
+
+    @staticmethod
+    def _resolve_waypoints_dir():
+        """Same resolution as multi_waypoint_planner: package share, else src-adjacent."""
+        if get_package_share_directory is not None:
+            try:
+                return os.path.join(get_package_share_directory('ur5_controller'), 'waypoints')
+            except Exception:
+                pass
+        here = os.path.dirname(os.path.abspath(__file__))
+        return os.path.join(here, 'waypoints')
 
     @staticmethod
     def parse_time_to_ros_duration(time_value):
@@ -77,6 +101,40 @@ class InteractiveHILController(Node):
             sec += 1
             nanosec -= 1_000_000_000
         return sec, nanosec
+
+    def run_batch(self, csv_path, mode, out_name):
+        """Non-interactive Stage 3+4 path for harness / ur5run."""
+        is_cartesian = mode in ('2', 'cartesian')
+        filename = csv_path or ('default_cartesian.csv' if is_cartesian else 'default_joint.csv')
+        filepath = filename if os.path.isabs(filename) else os.path.join(
+            self.waypoints_dir, os.path.basename(filename))
+        if not os.path.exists(filepath):
+            self.get_logger().error(f'File not found: {filepath}')
+            rclpy.shutdown()
+            return
+        self.get_logger().info(f'Batch load: {filepath}')
+        points = self.load_cartesian_waypoints(filepath) if is_cartesian else self.load_joint_waypoints(filepath)
+        if not points:
+            self.get_logger().error('No waypoints loaded.')
+            rclpy.shutdown()
+            return
+        self.action_client.wait_for_server()
+        goal_msg = FollowJointTrajectory.Goal()
+        goal_msg.trajectory.joint_names = self.joint_names
+        goal_msg.trajectory.header.stamp = self.get_clock().now().to_msg()
+        goal_msg.trajectory.points = points
+        for name in self.joint_names:
+            goal_msg.goal_tolerance.append(JointTolerance(name=name, position=1.0, velocity=1.0))
+        self.trajectory_event.clear()
+        self.is_recording = True
+        future = self.action_client.send_goal_async(goal_msg)
+        future.add_done_callback(self.goal_response_callback)
+        max_time = max(
+            pt.time_from_start.sec + pt.time_from_start.nanosec * 1e-9 for pt in points) + 10.0
+        self.trajectory_event.wait(timeout=max_time)
+        self.is_recording = False
+        self.return_to_candle()
+        self.export_data(out_name)
 
     def run_interactive_cli(self):
         """ The main interactive loop run in the background thread. """
@@ -96,7 +154,7 @@ class InteractiveHILController(Node):
         if not filename:
             filename = default_file
 
-        filepath = os.path.join(os.getcwd(), 'waypoints', filename)
+        filepath = os.path.join(self.waypoints_dir, filename)
         if not os.path.exists(filepath):
             self.get_logger().error(f"File not found: {filepath}")
             rclpy.shutdown()
@@ -155,6 +213,7 @@ class InteractiveHILController(Node):
         if not out_name:
             out_name = "run_log"
             
+        self.return_to_candle()
         self.export_data(out_name)
 
     # PARSERS & SOLVERS
@@ -251,8 +310,14 @@ class InteractiveHILController(Node):
             return None
 
         if self.ik_result_msg and self.ik_result_msg.error_code.val == 1: # SUCCESS
-            # Return exactly 7 joints to match our action client expectations
-            return list(self.ik_result_msg.solution.joint_state.position)[:7]
+            # Remap by joint name — never trust positional order of solution.joint_state
+            sol = self.ik_result_msg.solution.joint_state
+            name_to_pos = dict(zip(sol.name, sol.position))
+            try:
+                return [float(name_to_pos[n]) for n in self.joint_names]
+            except KeyError as exc:
+                self.get_logger().error(f"IK solution missing joint {exc}. Names={list(sol.name)}")
+                return None
         return None
 
     # CORE CALLBACKS & EXPORT
@@ -283,6 +348,38 @@ class InteractiveHILController(Node):
     def execution_finished_callback(self, future):
         self.get_logger().info('Action Server reported execution complete.')
         self.trajectory_event.set()
+
+    def return_to_candle(self):
+        """Stage 4 reset: command Candle Pose on active JTC without restarting Gazebo."""
+        self.get_logger().info('Returning to Candle Pose...')
+        if not self.action_client.wait_for_server(timeout_sec=10.0):
+            self.get_logger().error('FollowJointTrajectory server unavailable for Candle reset.')
+            return False
+
+        goal_msg = FollowJointTrajectory.Goal()
+        goal_msg.trajectory.joint_names = self.joint_names
+        # Zero stamp = execute as soon as received (reliable with use_sim_time).
+        goal_msg.trajectory.header.stamp.sec = 0
+        goal_msg.trajectory.header.stamp.nanosec = 0
+        pt = JointTrajectoryPoint()
+        pt.positions = list(self.candle_pose)
+        pt.velocities = [0.0] * 7
+        sec, nanosec = self.parse_time_to_ros_duration(5.0)
+        pt.time_from_start.sec = sec
+        pt.time_from_start.nanosec = nanosec
+        goal_msg.trajectory.points = [pt]
+        for name in self.joint_names:
+            goal_msg.goal_tolerance.append(JointTolerance(name=name, position=0.1, velocity=0.5))
+
+        self.trajectory_event.clear()
+        future = self.action_client.send_goal_async(goal_msg)
+        future.add_done_callback(self.goal_response_callback)
+        finished = self.trajectory_event.wait(timeout=30.0)
+        if not finished:
+            self.get_logger().warn('Candle Pose reset timed out.')
+            return False
+        self.get_logger().info('Candle Pose reset complete.')
+        return True
 
     def export_data(self, filename_prefix):
         if len(self.telemetry_data) < 2:
@@ -347,11 +444,25 @@ class InteractiveHILController(Node):
         rclpy.shutdown()
 
 def main(args=None):
-    rclpy.init(args=args)
-    controller = InteractiveHILController()
-    try: 
+    import argparse
+    parser = argparse.ArgumentParser(description='UR5 interactive / batch HIL controller')
+    parser.add_argument('--csv', default='', help='Waypoint CSV path or basename in waypoints/')
+    parser.add_argument('--mode', default='', choices=['', '1', '2', 'joint', 'cartesian'],
+                        help='1/joint or 2/cartesian; empty prompts interactively')
+    parser.add_argument('--out', default='run_log', help='Telemetry export basename')
+    known, ros_args = parser.parse_known_args(args=args)
+
+    rclpy.init(args=ros_args)
+    mode = known.mode
+    if mode == 'joint':
+        mode = '1'
+    elif mode == 'cartesian':
+        mode = '2'
+    controller = InteractiveHILController(csv_path=known.csv, mode=mode, out_name=known.out)
+    try:
         rclpy.spin(controller)
-    except KeyboardInterrupt: 
+    except KeyboardInterrupt:
         pass
 
-if __name__ == '__main__': main()
+if __name__ == '__main__':
+    main()

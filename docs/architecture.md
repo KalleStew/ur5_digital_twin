@@ -1,62 +1,67 @@
 # System Architecture
 
-The UR5 Digital Twin operates on a **Split-Level Control Architecture**. Because physical safety protocols dictate that only one controller can send voltage/commands to a motor at a time, the system features entirely independent "brains" that interact indirectly by competing for authority over the ROS 2 Controller Manager.
+The UR5 Digital Twin uses a **split-level (dual-brain) control** design: only one controller may command the simulated joints at a time. Brains hand off via `/controller_manager/switch_controller`.
 
-## 1. The Dual-Brain Control Flow
+**Runtime stack:** ROS 2 Jazzy · Gazebo Harmonic · `rmw_zenoh_cpp` · helper CLIs in `scripts/ur5` / `ur5_env.sh`
 
-The core system consists of a C++ planner for safe positioning and a Python script for experimental AI control. They communicate via a sequential **"Handoff"**.
+## 1. Dual-brain control flow
 
-### Phase A: The Kinematic Brain (C++)
-* **Role:** Safe navigation and positioning.
-* **Node Example:** `multi_waypoint_planner.cpp`
-* **Pathway:** Utilizes the MoveIt 2 framework and `MoveGroupInterface`.
-* **Execution:** MoveIt calculates Inverse Kinematics (IK) and dispatches a trajectory to the `ur_manipulator_controller`. This controller commands the virtual motors to rigidly follow positional waypoints, successfully navigating around tracked collision objects (e.g., the 1.525m x 0.76m workbench).
+### Brain A — Kinematic / trajectory (default)
 
-### Phase B: The AI Sandbox (Python)
-* **Role:** High-level AI, fault-detection, and raw torque manipulation.
-* **Node Example:** `ai_torque_controller.py`
-* **The Handoff (Service Client):** To take control, the Python script calls the `/controller_manager/switch_controller` service. It explicitly disables the `ur_manipulator_controller` (breaking the C++ planner's position lock) and enables the `forward_effort_controller`.
-* **Execution:** Once enabled, the Python script bypasses MoveIt entirely, pushing raw numerical arrays (representing joint torques) directly to the motors. 
+* **Controller:** `ur_manipulator_controller` (`JointTrajectoryController`, effort command interfaces)
+* **Nodes:** `multi_waypoint_planner.cpp`, `interactive_control.py`, MoveIt `move_group`
+* **Path:** Plan or replay joints → FollowJointTrajectory → Gazebo via `gz_ros2_control`
+* **Spawn pose:** Candle (upright) — URDF `initial_value` + SRDF `candle_pose` (`shoulder_lift_joint = -1.5708`)
 
-## 2. Core ROS 2 Topic Network
+### Brain B — Effort / research (loaded inactive)
 
-The system relies on the following primary topics to bridge MoveIt, Gazebo, and the custom scripts:
+* **Controller:** `forward_effort_controller` (`JointGroupEffortController`)
+* **Spawned:** inactive at bring-up (ready for intentional activation)
+* **Handoff:** `switch_controllers` deactivates JTC, activates FEC; publish `Float64MultiArray` on `/forward_effort_controller/commands`
+* **Active production scripts:** torque handoff is **not** in the default `interactive_control` path (archive / research only)
 
-### Telemetry & State Monitoring
-* `/joint_states`: The core telemetry topic. Published by `joint_state_broadcaster` at 100Hz. Subscribed to by the Python AI scripts for live encoder, velocity, and effort data.
-* `/robot_description`: Broadcasts the compiled URDF/Xacro XML string. Consumed by `gz_ros2_control` and MoveIt to establish kinematics and collision limits.
+## 2. Core ROS 2 topics
 
-### Low-Level Hardware Command
-* `/forward_effort_controller/commands`: The active intake for dynamic control. Python scripts publish `Float64MultiArray` messages here, which are routed directly into the Gazebo physics engine.
+### Telemetry
+* `/joint_states` — `joint_state_broadcaster` (~100 Hz)
+* `/robot_description` — URDF for RSP / MoveIt / gz plugin
 
-### Trajectory Planning & Validation
-* `/display_planned_path`: MoveIt publishes calculated, collision-free trajectories here. Subscribed to by `trajectory_exporter.cpp` to intercept timestamped joint angles for CSV export prior to execution.
-* `/planning_scene`, `/planning_scene_world`, `/monitored_planning_scene`: MoveIt environments that dynamically synchronize rigid 3D obstacle geometry to prevent collisions.
+### Commands
+* `/ur_manipulator_controller/follow_joint_trajectory` — Brain A
+* `/forward_effort_controller/commands` — Brain B (when active)
 
-### Simulation Control
-* `/clock`: Published by Gazebo. All nodes run with `use_sim_time:=true`, ensuring controllers do not desynchronize or crash if the physics engine is paused.
-* **Force Injection (gazebo_ros_force_system):** A dedicated topic allowing the publication of Wrench vectors to specific robot links to mathematically simulate random disturbances.
+### Planning
+* `/display_planned_path`, `/planning_scene`, `/monitored_planning_scene`
+* `/clicked_point` — RViz Publish Point waypoints (current planner definition path)
 
-## 3. Directory Structure and Module Responsibilities
+### Simulation
+* `/clock` — Gazebo → ROS bridge; all nodes `use_sim_time:=true`
+
+## 3. Launch topology
 
 ```text
-src/
-├── ur5_description/           # Physical Data & Physics Engine Setup
-│   ├── config/controllers.yaml   # Hardware interface mapping for Gazebo
-│   ├── launch/sim.launch.py      # Master launch file for Gazebo + URDF spawning
-│   ├── meshes/                   # STL files (visual and collision geometry)
-│   └── urdf/ur5.urdf             # The master URDF with accurate mass/inertia tags
-│
-├── ur5_moveit_config/         # MoveIt 2 Setup Assistant Outputs
-│   ├── config/ros2_controllers.yaml # MoveIt controller tunings (PID gains)
-│   ├── config/ur5.srdf      # Semantic description (groups, end effectors)
-│   └── launch/demo.launch.py     # MoveIt planning execution environment
-│
-└── ur5_controller/            # Custom Control Logic (The "Brains")
-    ├── src/
-    │   ├── multi_waypoint_planner.cpp  # C++ Kinematic Brain (MoveIt API)
-    │   ├── trajectory_exporter.cpp     # Intercepts /display_planned_path to CSV
-    │   ├── ai_torque_controller.py     # Python AI Sandbox (Direct torque injection)
-    │   ├── mode_switcher.py            # Dedicated service client for the "Handoff"
-    │   └── research_control.py         # 100Hz /joint_states telemetry logger
-    └── launch/planner.launch.py        # Initializes the custom control nodes
+gazebo_sim.launch.py          # master (Zenoh RMW, GUI+RViz defaults)
+  ├─ sim.launch.py            # gz + spawn + JSB→JTC→FEC(inactive) spawners
+  ├─ clock bridge
+  ├─ move_group.launch.py     # Timer ~6 s
+  └─ moveit_rviz.launch.py    # Timer ~8 s (if start_rviz:=true)
+```
+
+| Mode | Command |
+|---|---|
+| GUI + RViz (default) | `ur5 simgui` / `run_sim` |
+| Headless | `ur5 sim` |
+| Candle reset | `ur5 reset` or `ur5 candle` |
+
+## 4. Directory structure (active)
+
+```text
+ur5_digital_twin/
+├── docs/                      # Operator + repair docs (this folder)
+├── scripts/                   # ur5, ur5_env.sh, run_sim
+├── ur5_description/           # URDF, meshes, sim.launch.py, ensure_controllers.py
+├── ur5_moveit_config/         # SRDF, ros2_controllers.yaml, gazebo_sim.launch.py
+└── ur5_controller/            # multi_waypoint_planner, interactive_control, planner_cli, waypoints/
+```
+
+See `OPERATOR_WALKTHROUGH.md` for day-to-day commands and `SYSTEM_MAP.md` for deeper static analysis.

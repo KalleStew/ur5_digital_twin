@@ -4,6 +4,7 @@
 #include <moveit_msgs/msg/display_trajectory.hpp>
 #include <moveit/robot_state/conversions.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <thread>
 #include <iostream>
 #include <fstream>
@@ -13,6 +14,8 @@
 #include <algorithm>
 #include <cctype>
 #include <unistd.h>
+#include <filesystem>
+#include <map>
 
 namespace {
 
@@ -116,6 +119,15 @@ class MultiWaypointPlanner : public rclcpp::Node {
 public:
   // ...
     MultiWaypointPlanner() : Node("multi_waypoint_planner", rclcpp::NodeOptions().append_parameter_override("use_sim_time", true)) {
+    // Resolve waypoints/ via package share (D-004). Falls back to ./waypoints if share missing.
+    try {
+      const auto share = ament_index_cpp::get_package_share_directory("ur5_controller");
+      waypoints_dir_ = std::filesystem::path(share) / "waypoints";
+    } catch (const std::exception&) {
+      waypoints_dir_ = std::filesystem::path("waypoints");
+    }
+    std::filesystem::create_directories(waypoints_dir_);
+
     click_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
       "/clicked_point", 10,
       std::bind(&MultiWaypointPlanner::point_callback, this, std::placeholders::_1)
@@ -130,6 +142,7 @@ public:
     
     RCLCPP_INFO(this->get_logger(), "==========================================");
     RCLCPP_INFO(this->get_logger(), " Multi-Waypoint Planner & Exporter Ready! ");
+    RCLCPP_INFO(this->get_logger(), " Waypoints dir: %s", waypoints_dir_.c_str());
     RCLCPP_INFO(this->get_logger(), "==========================================");
   }
 
@@ -346,21 +359,23 @@ private:
       return;
     }
 
-    std::ofstream file("trajectory_joints_export.csv");
+    const std::filesystem::path out_path = waypoints_dir_ / "trajectory_joints_export.csv";
+    std::ofstream file(out_path);
     if (!file.is_open()) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to open trajectory_joints_export.csv for writing.");
+      RCLCPP_ERROR(this->get_logger(), "Failed to open %s for writing.", out_path.c_str());
       return;
     }
 
     auto joint_traj = traj_snapshot.joint_trajectory;
-    const size_t joint_count = std::min<size_t>(7, joint_traj.joint_names.size());
+    // Canonical controller YAML order — remap each point by name (D-003).
+    static const std::vector<std::string> kCanonical = {
+      "shoulder_pan_joint1", "shoulder_pan_joint", "shoulder_lift_joint",
+      "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"
+    };
 
     file << "time_sec";
-    for (size_t i = 0; i < joint_count; ++i) {
-      file << "," << joint_traj.joint_names[i];
-    }
-    for (size_t i = joint_count; i < 7; ++i) {
-      file << ",joint_" << i;
+    for (const auto& name : kCanonical) {
+      file << "," << name;
     }
     file << "\n";
 
@@ -368,16 +383,19 @@ private:
       double time_sec = point.time_from_start.sec + (point.time_from_start.nanosec * 1e-9);
       file << time_sec;
 
-      for (size_t i = 0; i < joint_count && i < point.positions.size(); ++i) {
-        file << "," << point.positions[i];
+      std::map<std::string, double> by_name;
+      for (size_t i = 0; i < joint_traj.joint_names.size() && i < point.positions.size(); ++i) {
+        by_name[joint_traj.joint_names[i]] = point.positions[i];
       }
-      for (size_t i = std::min(joint_count, point.positions.size()); i < 7; ++i) {
-        file << ",0.0";
+      for (const auto& name : kCanonical) {
+        const auto it = by_name.find(name);
+        file << "," << (it != by_name.end() ? it->second : 0.0);
       }
       file << "\n";
     }
     file.close();
-    RCLCPP_INFO(this->get_logger(), "Saved %zu joint-space waypoints to trajectory_joints_export.csv.", joint_traj.points.size());
+    RCLCPP_INFO(this->get_logger(), "Saved %zu joint-space waypoints to %s.",
+                joint_traj.points.size(), out_path.c_str());
   }
 
   // EXPORT 2: Cartesian CSV for interactive controller ingestion.
@@ -393,9 +411,10 @@ private:
       return;
     }
 
-    std::ofstream file("trajectory_cartesian_export.csv");
+    const std::filesystem::path out_path = waypoints_dir_ / "trajectory_cartesian_export.csv";
+    std::ofstream file(out_path);
     if (!file.is_open()) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to open trajectory_cartesian_export.csv for writing.");
+      RCLCPP_ERROR(this->get_logger(), "Failed to open %s for writing.", out_path.c_str());
       return;
     }
 
@@ -422,7 +441,8 @@ private:
            << roll << "," << pitch << "," << yaw << "\n";
     }
     file.close();
-    RCLCPP_INFO(this->get_logger(), "Saved %zu cartesian waypoints to trajectory_cartesian_export.csv.", waypoints_snapshot.size());
+    RCLCPP_INFO(this->get_logger(), "Saved %zu cartesian waypoints to %s.",
+                waypoints_snapshot.size(), out_path.c_str());
   }
 
   rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr click_sub_;
@@ -431,6 +451,7 @@ private:
   std::shared_ptr<moveit::planning_interface::MoveGroupInterface> move_group_;
   std::mutex data_mutex_;
   std::mutex command_mutex_;
+  std::filesystem::path waypoints_dir_;
   
   geometry_msgs::msg::Pose initial_pose_;
   std::vector<geometry_msgs::msg::Pose> waypoints_;

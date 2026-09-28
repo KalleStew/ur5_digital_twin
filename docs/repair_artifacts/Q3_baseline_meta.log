@@ -1,0 +1,26 @@
+=== Q3 RENDER / HEADLESS BASELINE ===
+2026-09-22T17:39:23-04:00
+rmw_zenohd NOT running
+--- install pkgs ---
+COLCON_IGNORE
+local_setup.bash
+local_setup.ps1
+local_setup.sh
+_local_setup_util_ps1.py
+_local_setup_util_sh.py
+local_setup.zsh
+maestro_hardware_interface
+setup.bash
+setup.ps1
+setup.sh
+setup.zsh
+ur5_controller
+ur5_description
+ur5_moveit_config
+--- glx ---
+no glxinfo
+--- gz versions ---
+8.11.0
+--- find shapes ---
+/opt/ros/jazzy/opt/gz_sim_vendor/share/gz/gz-sim8/worlds/shapes.sdf
+WORLD=/home/kallestewart/ros2_ws/src/ur5_digital_twin/ur5_description/worlds/empty.sdf
