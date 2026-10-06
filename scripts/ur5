@@ -35,7 +35,8 @@ Sim:
 Motion:
   run <csv>   interactive_control batch
   reset       Candle Pose
-  plan <name> Planner helper (RViz still required)
+  plan <name> Planner helper (RViz still required; auto-starts planner)
+  planner     Run multi_waypoint_planner in the foreground
 
 Diagnostics:
   ctl | iface | states | hz | wp | doctor | brain a|b
@@ -58,6 +59,7 @@ EOF
   candle)  ur5candle "$@" ;;
   demo)    ur5demo "$@" ;;
   plan)    ur5plan "$@" ;;
+  planner) ur5planner "$@" ;;
   run)     ur5run "$@" ;;
   reset)   ur5reset "$@" ;;
   ctl)     ur5ctl "$@" ;;

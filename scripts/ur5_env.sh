@@ -172,6 +172,13 @@ ur5demo() {
     --mode 1 --csv demo_15s.csv --out "${out}"
 }
 
+ur5planner() {
+  # multi_waypoint_planner: subscribes /clicked_point (RViz Publish Point) + /planner_command.
+  ur5env
+  echo "+ ros2 launch ur5_controller planner.launch.py $*"
+  ros2 launch ur5_controller planner.launch.py "$@"
+}
+
 ur5plan() {
   ur5env
   local name="${1:-}"
@@ -192,10 +199,41 @@ ur5plan() {
     echo "REFUSE: ${out} exists (pass -f to overwrite)" >&2
     return 1
   fi
+  # planner_cli.py only publishes to /planner_command; multi_waypoint_planner does the work.
+  local planner_pid=""
+  if ! ros2 node list 2>/dev/null | grep -qx "/multi_waypoint_planner"; then
+    echo "+ starting multi_waypoint_planner in background (log: /tmp/ur5_planner.log)"
+    setsid ros2 launch ur5_controller planner.launch.py > /tmp/ur5_planner.log 2>&1 < /dev/null &
+    planner_pid=$!
+    local i
+    for i in $(seq 1 30); do
+      if ros2 topic info /planner_command 2>/dev/null | grep -q "Subscription count: [1-9]"; then
+        break
+      fi
+      if ! kill -0 "${planner_pid}" 2>/dev/null; then
+        echo "ERROR: multi_waypoint_planner exited — see /tmp/ur5_planner.log" >&2
+        return 1
+      fi
+      sleep 1
+    done
+    if ! ros2 topic info /planner_command 2>/dev/null | grep -q "Subscription count: [1-9]"; then
+      echo "ERROR: multi_waypoint_planner not subscribed to /planner_command after 30 s — see /tmp/ur5_planner.log" >&2
+      kill -TERM -- "-${planner_pid}" 2>/dev/null || true
+      return 1
+    fi
+  else
+    echo "+ multi_waypoint_planner already running"
+  fi
   echo "NOTICE (R5): Manual step remains — in RViz, Publish Point until ≥2 waypoints exist."
   echo "NOTICE (R5): Then in the planner CLI type: plan → export joints (no CLI goal-entry path)."
+  echo "NOTICE: planner feedback is in /tmp/ur5_planner.log (tail -f it in another terminal)."
   echo "+ python3 ${_UR5_REPO_ROOT}/ur5_controller/src/planner_cli.py"
-  python3 "${_UR5_REPO_ROOT}/ur5_controller/src/planner_cli.py" "$@"
+  python3 "${_UR5_REPO_ROOT}/ur5_controller/src/planner_cli.py" "$@" || true
+  if [[ -n "${planner_pid}" ]]; then
+    echo "+ stopping background multi_waypoint_planner"
+    kill -TERM -- "-${planner_pid}" 2>/dev/null || true
+    wait "${planner_pid}" 2>/dev/null || true
+  fi
   local src="${wp}/trajectory_joints_export.csv"
   if [[ -f "${src}" ]]; then
     echo "+ cp ${src} ${out}"
@@ -352,4 +390,4 @@ ur5doctor() {
 }
 
 echo "ur5_env.sh loaded (repo=${_UR5_REPO_ROOT} ws=${_UR5_WS_ROOT})"
-echo "Functions: ur5env ur5zenoh_restart ur5kill ur5setup ur5build ur5clean ur5sim ur5simgui ur5candle ur5demo ur5plan ur5run ur5reset ur5ctl ur5iface ur5brain ur5states ur5hz ur5wp ur5doctor"
+echo "Functions: ur5env ur5zenoh_restart ur5kill ur5setup ur5build ur5clean ur5sim ur5simgui ur5candle ur5demo ur5planner ur5plan ur5run ur5reset ur5ctl ur5iface ur5brain ur5states ur5hz ur5wp ur5doctor"

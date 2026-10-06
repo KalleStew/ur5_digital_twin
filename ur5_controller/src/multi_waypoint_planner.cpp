@@ -133,9 +133,14 @@ public:
       std::bind(&MultiWaypointPlanner::point_callback, this, std::placeholders::_1)
     );
 
+    // Separate group so blocking commands don't starve the default group (joint_states for getCurrentState).
+    command_cb_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+    rclcpp::SubscriptionOptions command_sub_options;
+    command_sub_options.callback_group = command_cb_group_;
     command_sub_ = this->create_subscription<std_msgs::msg::String>(
       "/planner_command", 10,
-      std::bind(&MultiWaypointPlanner::command_callback, this, std::placeholders::_1)
+      std::bind(&MultiWaypointPlanner::command_callback, this, std::placeholders::_1),
+      command_sub_options
     );
     
     display_pub_ = this->create_publisher<moveit_msgs::msg::DisplayTrajectory>("/display_planned_path", 10);
@@ -446,6 +451,7 @@ private:
   }
 
   rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr click_sub_;
+  rclcpp::CallbackGroup::SharedPtr command_cb_group_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr command_sub_;
   rclcpp::Publisher<moveit_msgs::msg::DisplayTrajectory>::SharedPtr display_pub_;
   std::shared_ptr<moveit::planning_interface::MoveGroupInterface> move_group_;
