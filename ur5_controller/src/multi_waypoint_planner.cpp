@@ -9,6 +9,7 @@
 #include <fstream>
 #include <string>
 #include <cmath>
+#include <chrono>
 #include <mutex>
 #include <algorithm>
 #include <cctype>
@@ -134,35 +135,60 @@ public:
   }
 
   bool setup_move_group() {
-    try {
-      move_group_ = std::make_shared<moveit::planning_interface::MoveGroupInterface>(shared_from_this(), "ur_manipulator");
-    } catch (const std::exception& e) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to initialize MoveGroupInterface: %s", e.what());
-      return false;
+    int attempt = 0;
+    const auto retry_delay = std::chrono::milliseconds(1000);
+
+    while (rclcpp::ok()) {
+      ++attempt;
+      try {
+        move_group_ = std::make_shared<moveit::planning_interface::MoveGroupInterface>(shared_from_this(), "ur_manipulator");
+      } catch (const std::exception& e) {
+        RCLCPP_WARN(
+          this->get_logger(),
+          "MoveGroupInterface init attempt %d failed: %s",
+          attempt,
+          e.what());
+        move_group_.reset();
+      }
+
+      if (move_group_) {
+        auto current_state = move_group_->getCurrentState(2.0);
+        if (current_state) {
+          // Save the starting pose so we can return to it later.
+          {
+            std::lock_guard<std::mutex> lock(data_mutex_);
+            initial_pose_ = move_group_->getCurrentPose().pose;
+            waypoints_.clear();
+            waypoints_.push_back(initial_pose_);
+          }
+          RCLCPP_INFO(this->get_logger(), "MoveGroupInterface initialized successfully.");
+          return true;
+        }
+
+        RCLCPP_WARN(
+          this->get_logger(),
+          "MoveGroupInterface attempt %d could not read current robot state yet. Retrying...",
+          attempt);
+      }
+
+      rclcpp::sleep_for(retry_delay);
     }
 
-    if (!move_group_) {
-      RCLCPP_ERROR(this->get_logger(), "MoveGroupInterface is null after initialization.");
-      return false;
-    }
-
-    // Save the starting pose so we can return to it later.
-    {
-      std::lock_guard<std::mutex> lock(data_mutex_);
-      initial_pose_ = move_group_->getCurrentPose().pose;
-      waypoints_.clear();
-      waypoints_.push_back(initial_pose_);
-    }
-
-    return true;
+    RCLCPP_ERROR(this->get_logger(), "MoveGroupInterface setup stopped because ROS is shutting down.");
+    return false;
   }
 
   void run_terminal_loop() {
     std::string command;
     if (!isatty(fileno(stdin))) {
       RCLCPP_WARN(this->get_logger(), "Planner stdin is not attached to a terminal. Interactive commands may not work in this launch context.");
-      RCLCPP_WARN(this->get_logger(), "Use a publisher on /planner_command as a fallback command channel.");
+      RCLCPP_WARN(this->get_logger(), "Terminal command loop disabled; planner remains active via /planner_command topic.");
+      while (rclcpp::ok()) {
+        rclcpp::sleep_for(std::chrono::milliseconds(250));
+      }
+      return;
     }
+
     while (rclcpp::ok()) {
       std::cout << "\n[MENU] Enter a command:\n"
                 << "  'plan'                   -> Preview path in RViz\n"
@@ -206,7 +232,7 @@ private:
       }
 
       if (!move_group_) {
-        RCLCPP_ERROR(this->get_logger(), "Move group is not initialized.");
+        RCLCPP_WARN(this->get_logger(), "Move group is still initializing. Wait for 'MoveGroupInterface initialized successfully.' before planning.");
         return;
       }
 
@@ -240,7 +266,7 @@ private:
 
     if (resolved_command == "execute") {
       if (!move_group_) {
-        RCLCPP_ERROR(this->get_logger(), "Move group is not initialized.");
+        RCLCPP_WARN(this->get_logger(), "Move group is still initializing. Execute is unavailable until initialization completes.");
         return;
       }
 
@@ -292,7 +318,7 @@ private:
 
     if (resolved_command == "clear") {
       if (!move_group_) {
-        RCLCPP_ERROR(this->get_logger(), "Move group is not initialized.");
+        RCLCPP_WARN(this->get_logger(), "Move group is still initializing. Clear is unavailable until initialization completes.");
         return;
       }
 
@@ -445,12 +471,11 @@ int main(int argc, char** argv) {
   executor.add_node(node);
   std::thread spinner([&executor]() { executor.spin(); });
 
-  if (!node->setup_move_group()) {
-    RCLCPP_FATAL(node->get_logger(), "Planner startup aborted: Move group setup failed.");
-    rclcpp::shutdown();
-    spinner.join();
-    return 1;
-  }
+  std::thread setup_thread([node]() {
+    node->setup_move_group();
+  });
+  setup_thread.detach();
+
   node->run_terminal_loop();
 
   rclcpp::shutdown();

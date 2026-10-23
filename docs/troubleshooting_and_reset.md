@@ -69,6 +69,31 @@ ros2 launch ur5_moveit_config gazebo_sim.launch.py
 
 ## 5. Zenoh-Specific Issues
 
+### Symptom: Planner launches but appears hung, and `ros2 topic pub --once /planner_command ...` waits forever for subscribers
+
+Most often this is a middleware mismatch across terminals. Example: simulator/planner are on FastDDS, but your publisher terminal inherited Zenoh (or vice versa).
+
+Check each terminal:
+```bash
+echo $RMW_IMPLEMENTATION
+```
+
+Use matching launch commands for the same run:
+```bash
+# Fast DDS
+ros2 launch ur5_moveit_config gazebo_sim.launch.py rmw_implementation:=rmw_fastrtps_cpp
+ros2 launch ur5_controller planner.launch.py rmw_implementation:=rmw_fastrtps_cpp
+
+# Zenoh
+ros2 launch ur5_moveit_config gazebo_sim.launch.py rmw_implementation:=rmw_zenoh_cpp start_zenoh_router:=true
+ros2 launch ur5_controller planner.launch.py rmw_implementation:=rmw_zenoh_cpp
+```
+
+If using Zenoh without embedded router, start one first:
+```bash
+ros2 run rmw_zenoh_cpp rmw_zenohd
+```
+
 ### Symptom: `ros2 topic list` returns nothing / nodes can't see each other
 
 Zenoh's router may have crashed. Reset the daemon:

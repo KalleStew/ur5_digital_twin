@@ -2,7 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, TimerAction, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, LogInfo, TimerAction, SetEnvironmentVariable
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -31,6 +31,8 @@ def generate_launch_description():
         name='RMW_IMPLEMENTATION',
         value=LaunchConfiguration('rmw_implementation'),
     )
+
+    rmw_log = LogInfo(msg=['[gazebo_sim] RMW_IMPLEMENTATION=', LaunchConfiguration('rmw_implementation')])
 
     zenoh_router = ExecuteProcess(
         cmd=['ros2', 'run', 'rmw_zenoh_cpp', 'rmw_zenohd'],
@@ -92,6 +94,7 @@ def generate_launch_description():
         global_use_sim_time,
         rmw_implementation_arg,
         set_rmw,
+        rmw_log,
         start_zenoh_router_arg,
         zenoh_router,
         delayed_sim_launch,

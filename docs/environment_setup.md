@@ -684,10 +684,13 @@ alias repo='cd ~/ros2_ws/src/ur5_digital_twin'
 alias build='cd ~/ros2_ws && colcon build --symlink-install && source install/setup.bash'
 alias cbuild='cd ~/ros2_ws && rm -rf build/ install/ log/ && colcon build --symlink-install && source install/setup.bash'
 alias src_ws='source /opt/ros/jazzy/setup.bash && source ~/ros2_ws/install/setup.bash'
-alias run_sim='ros2 launch ur5_moveit_config gazebo_sim.launch.py' 
+alias run_sim='ros2 launch ur5_moveit_config gazebo_sim.launch.py rmw_implementation:=rmw_fastrtps_cpp'
+alias run_sim_zenoh='ros2 launch ur5_moveit_config gazebo_sim.launch.py rmw_implementation:=rmw_zenoh_cpp start_zenoh_router:=true'
 
-alias plan='cd ~/ros2_ws && source install/setup.bash && ros2 launch ur5_controller planner.launch.py'
-alias plan_cli='cd ~/ros2_ws/src/ur5_digital_twin/ur5_controller/src && python3 planner_cli.py'
+alias plan='cd ~/ros2_ws && source install/setup.bash && ros2 launch ur5_controller planner.launch.py rmw_implementation:=rmw_fastrtps_cpp'
+alias plan_zenoh='cd ~/ros2_ws && source install/setup.bash && ros2 launch ur5_controller planner.launch.py rmw_implementation:=rmw_zenoh_cpp'
+alias plan_cli='cd ~/ros2_ws/src/ur5_digital_twin/ur5_controller/src && RMW_IMPLEMENTATION=rmw_fastrtps_cpp python3 planner_cli.py'
+alias plan_cli_zenoh='cd ~/ros2_ws/src/ur5_digital_twin/ur5_controller/src && RMW_IMPLEMENTATION=rmw_zenoh_cpp python3 planner_cli.py'
 
 EOF
 
@@ -701,6 +704,8 @@ plan_cli
 ```
 
 This publishes commands to `/planner_command` and avoids launch-stdin issues.
+
+If your simulation is running in Zenoh mode, use `plan_zenoh` and `plan_cli_zenoh` so all terminals share the same middleware.
 
 All terminals must use the same `RMW_IMPLEMENTATION`. If you use Zenoh, run a router before using topic-based helper tools:
 

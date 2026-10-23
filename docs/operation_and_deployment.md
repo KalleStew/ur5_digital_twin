@@ -18,7 +18,7 @@ The first step is to boot the core physics engine, the visualization environment
 
 **Command:**
 ```bash
-ros2 launch ur5_moveit_config gazebo_sim.launch.py
+ros2 launch ur5_moveit_config gazebo_sim.launch.py rmw_implementation:=rmw_fastrtps_cpp
 ```
 
 For single-machine simulation release workflows, keep the middleware on Fast DDS (default in this launch):
@@ -30,6 +30,11 @@ If you intentionally use Zenoh, start the router first and then launch with the 
 ```bash
 ros2 run rmw_zenoh_cpp rmw_zenohd
 RMW_IMPLEMENTATION=rmw_zenoh_cpp ros2 launch ur5_moveit_config gazebo_sim.launch.py start_zenoh_router:=false
+```
+
+Equivalent one-command Zenoh launch (embedded router):
+```bash
+ros2 launch ur5_moveit_config gazebo_sim.launch.py rmw_implementation:=rmw_zenoh_cpp start_zenoh_router:=true
 ```
 
 **What this does:**
@@ -46,18 +51,40 @@ Once the simulation is running, open a second terminal to launch the conventiona
 
 **Command:**
 ```bash
-ros2 launch ur5_controller planner.launch.py
+ros2 launch ur5_controller planner.launch.py rmw_implementation:=rmw_fastrtps_cpp
 ```
+
+If simulator is on Zenoh, launch planner with the same middleware:
+```bash
+ros2 launch ur5_controller planner.launch.py rmw_implementation:=rmw_zenoh_cpp
+```
+
+Critical rule: every terminal that participates in the same run must use identical middleware. Mixed FastDDS/Zenoh terminals appear as a planner hang because topics and services do not discover each other.
 
 Run this from any directory after sourcing `install/setup.bash`. Avoid launching from inside the `launch/` folder with `ros2 launch planner.launch.py`, because package context and parameter resolution can become inconsistent.
 
 If typed commands are echoed but not processed in your terminal, run the fallback command console in a third terminal:
 ```bash
-cd ~/ros2_ws/src/ur5_digital_twin/ur5_controller/src
-python3 planner_cli.py
+ros2 run ur5_controller planner_cli
+```
+
+If your simulator is running with Zenoh, set the same middleware before launching the fallback CLI:
+```bash
+export RMW_IMPLEMENTATION=rmw_zenoh_cpp
+ros2 run ur5_controller planner_cli
 ```
 
 `planner_cli.py` publishes to `/planner_command` and bypasses launch stdin forwarding issues.
+
+Before launching the planner, run this quick preflight in Terminal 1:
+```bash
+ros2 topic echo /clock --once
+ros2 service list | grep compute_ik
+ros2 service list | grep controller_manager
+```
+
+Do not send `plan` or `execute` until planner logs:
+`MoveGroupInterface initialized successfully.`
 
 **What this does:**
 * Initializes the `MoveGroupInterface` to calculate Inverse Kinematics (IK) and avoid collisions.

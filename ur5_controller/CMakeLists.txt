@@ -46,6 +46,12 @@ install(TARGETS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(PROGRAMS
+  src/planner_cli.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME planner_cli
+)
+
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
