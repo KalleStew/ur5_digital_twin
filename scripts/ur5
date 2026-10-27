@@ -1,13 +1,10 @@
 #!/usr/bin/env bash
-# Runnable entry point — does not require a prior `source`.
-# Usage:
-#   ~/ros2_ws/src/ur5_digital_twin/scripts/ur5 simgui
-#   ~/ros2_ws/src/ur5_digital_twin/scripts/ur5 demo
-set -eo pipefail
-# Do not enable nounset: ROS setup.bash references optional unset vars.
+# UR5 digital twin command dispatcher; needs no prior `source`.
+set -o pipefail
 
-_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_ROOT="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 unset UR5_ENV_LOADED
+export UR5_QUIET=1
 # shellcheck disable=SC1091
 source "${_ROOT}/ur5_env.sh"
 
@@ -16,59 +13,76 @@ shift || true
 
 case "${cmd}" in
   ""|help|-h|--help)
-    cat <<'EOF'
-Usage: ur5 <command> [args...]
+    cat <<'HELP'
+Usage: ur5 <command> [args]
+Exit codes: 0 ok, 1 run failed, 2 input rejected, 3 platform not ready, 4 safety abort, 130 interrupted.
 
-Setup:
-  setup     Add scripts/ to PATH in ~/.bashrc
-  env       Source ROS + workspace + Zenoh
-  zenoh     Restart Zenoh router
-  kill      Stop Gazebo / RViz / bridges
+Setup
+  ur5 setup                      add scripts/ to PATH in ~/.bashrc
+  ur5 build [pkg...]             colcon build --symlink-install
+  ur5 clean                      remove build/ install/ log/ (keeps $UR5_DATA_DIR)
+  ur5 doctor                     environment report, saved under $UR5_DATA_DIR/doctor
+  ur5 zenoh                      restart the rmw_zenohd router
 
-Sim:
-  sim       Headless (no windows)
-  simgui    Gazebo GUI + RViz (ogre on ARM64 by default)
-  run_sim   Same as simgui (matches historical run_sim alias)
-  candle    Re-activate JTC + command upright Candle Pose
-  demo      Run ~12 s presentation trajectory (sim must be up)
+Simulation
+  ur5 sim                        headless Gazebo + MoveIt (one at a time)
+  ur5 simgui                     Gazebo GUI + RViz
+  ur5 run_sim                    same as simgui
+  ur5 kill                       stop Gazebo, bridges, move_group, RViz
 
-Motion:
-  run <csv>   interactive_control batch
-  reset       Candle Pose
-  plan <name> Planner helper (RViz still required; auto-starts planner)
-  planner     Run multi_waypoint_planner in the foreground
+Brain A (position)
+  ur5 candle                     pre-flight: Brain A, move to candle_pose, verify settle
+  ur5 reset                      same as candle
+  ur5 run [csv] [--cartesian] [--out name] [--force]
+                                 execute a waypoint CSV, record HDF5, return to Candle
+  ur5 demo                       run demo_15s.csv
+  ur5 plan <name> [--points file.points.yaml] [--force]
+                                 plan through task-space points, export $UR5_DATA_DIR/waypoints/<name>.csv
+  ur5 planner                    multi_waypoint_planner in the foreground (RViz Publish Point)
+  ur5 brain a|b [--sec N]        switch control authority; b holds the pose with PD + gravity
 
-Diagnostics:
-  ctl | iface | states | hz | wp | doctor | brain a|b
+Brain B (torque)
+  ur5 torque <experiment.yaml> [--trial id] [--seed n]
+                                 run benchmark trials, one HDF5 per trial
 
-Build:
-  build [pkg…] | clean
-EOF
+Data and diagnostics
+  ur5 data                       show $UR5_DATA_DIR and file counts
+  ur5 wp                         list shipped and user waypoint files
+  ur5 validate <file.h5|dir>     check telemetry shape, rate, timestamps, metadata
+  ur5 ctl                        ros2 control list_controllers
+  ur5 iface                      ros2 control list_hardware_interfaces
+  ur5 states                     one /joint_states message
+  ur5 hz [topic]                 topic rate (default /joint_states)
+  ur5 test [--unit]              unit tests; without --unit, the full sim acceptance run
+HELP
+    exit 0
     ;;
   setup)   ur5setup "$@" ;;
-  env)     ur5env "$@" ;;
-  zenoh)   ur5zenoh_restart "$@" ;;
-  kill)    ur5kill "$@" ;;
   build)   ur5build "$@" ;;
   clean)   ur5clean "$@" ;;
+  doctor)  ur5doctor "$@" ;;
+  zenoh)   ur5zenoh_restart "$@" ;;
   sim)     ur5sim "$@" ;;
-  simgui|run_sim)  ur5simgui "$@" ;;
+  simgui|run_sim) ur5simgui "$@" ;;
+  kill)    ur5kill "$@" ;;
   candle)  ur5candle "$@" ;;
+  reset)   ur5reset "$@" ;;
+  run)     ur5run "$@" ;;
   demo)    ur5demo "$@" ;;
   plan)    ur5plan "$@" ;;
   planner) ur5planner "$@" ;;
-  run)     ur5run "$@" ;;
-  reset)   ur5reset "$@" ;;
+  brain)   ur5brain "$@" ;;
+  torque)  ur5torque "$@" ;;
+  data)    ur5data "$@" ;;
+  wp)      ur5wp "$@" ;;
+  validate) ur5validate "$@" ;;
   ctl)     ur5ctl "$@" ;;
   iface)   ur5iface "$@" ;;
-  brain)   ur5brain "$@" ;;
   states)  ur5states "$@" ;;
   hz)      ur5hz "$@" ;;
-  wp)      ur5wp "$@" ;;
-  doctor)  ur5doctor "$@" ;;
+  test)    ur5test "$@" ;;
   *)
-    echo "Unknown command: ${cmd}" >&2
-    echo "Run: ur5 help" >&2
-    exit 1
+    echo "ERROR: unknown command '${cmd}'; run: ur5 help" >&2
+    exit 2
     ;;
 esac
