@@ -204,6 +204,13 @@
         </plugin>
     </gazebo>
 
+    <!-- Joint states stamped with the physics step's own sim time (every step), bridged for Brain B and telemetry. -->
+    <gazebo>
+        <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher">
+            <topic>/ur5/gz/joint_states</topic>
+        </plugin>
+    </gazebo>
+
     <ros2_control name="GazeboSystem" type="system">
         <hardware>
             <plugin>gz_ros2_control/GazeboSimSystem</plugin>
