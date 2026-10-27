@@ -4,20 +4,56 @@
 #include <moveit_msgs/msg/display_trajectory.hpp>
 #include <moveit/robot_state/conversions.hpp>
 #include <std_msgs/msg/string.hpp>
-#include <ament_index_cpp/get_package_share_directory.hpp>
+#include <ament_index_cpp/get_package_prefix.hpp>
+#include <tf2/LinearMath/Quaternion.h>
 #include <thread>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <cmath>
+#include <cstdlib>
 #include <mutex>
 #include <algorithm>
 #include <cctype>
+#include <regex>
 #include <unistd.h>
 #include <filesystem>
 #include <map>
 
 namespace {
+
+// Same resolution as ur5_controller.trajectory_io.data_dir(): never install/ or the CWD.
+std::filesystem::path data_dir() {
+  if (const char* env = std::getenv("UR5_DATA_DIR"); env && *env) {
+    return std::filesystem::absolute(env);
+  }
+  try {
+    const std::filesystem::path install = std::filesystem::path(
+      ament_index_cpp::get_package_prefix("ur5_controller")).parent_path();
+    if (install.filename() == "install") {
+      return install.parent_path() / "ur5_data";
+    }
+  } catch (const std::exception&) {
+  }
+  const char* home = std::getenv("HOME");
+  return std::filesystem::path(home ? home : ".") / "ur5_data";
+}
+
+bool valid_name(const std::string& name) {
+  static const std::regex re("^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$");
+  return std::regex_match(name, re) && name.find("..") == std::string::npos;
+}
+
+std::vector<std::string> split_words(const std::string& s) {
+  std::istringstream in(s);
+  std::vector<std::string> out;
+  std::string w;
+  while (in >> w) {
+    out.push_back(w);
+  }
+  return out;
+}
 
 std::string trim_copy(const std::string& input) {
   const auto first = input.find_first_not_of(" \t\n\r\f\v");
@@ -88,7 +124,13 @@ std::string resolve_command(const std::string& raw_command) {
     return "return home";
   }
 
-  if (command == "export" || command == "ej" || command == "ec") {
+  if (command == "ej") {
+    return "export joints";
+  }
+  if (command == "ec") {
+    return "export cartesian";
+  }
+  if (command == "export" || command == "quit") {
     return command;
   }
 
@@ -117,16 +159,10 @@ std::string resolve_command(const std::string& raw_command) {
 
 class MultiWaypointPlanner : public rclcpp::Node {
 public:
-  // ...
-    MultiWaypointPlanner() : Node("multi_waypoint_planner", rclcpp::NodeOptions().append_parameter_override("use_sim_time", true)) {
-    // Resolve waypoints/ via package share (D-004). Falls back to ./waypoints if share missing.
-    try {
-      const auto share = ament_index_cpp::get_package_share_directory("ur5_controller");
-      waypoints_dir_ = std::filesystem::path(share) / "waypoints";
-    } catch (const std::exception&) {
-      waypoints_dir_ = std::filesystem::path("waypoints");
-    }
-    std::filesystem::create_directories(waypoints_dir_);
+  MultiWaypointPlanner() : Node("multi_waypoint_planner", rclcpp::NodeOptions().append_parameter_override("use_sim_time", true)) {
+    waypoints_dir_ = data_dir() / "waypoints";
+    min_export_dt_ = this->declare_parameter<double>("min_export_dt", 0.5);
+    status_pub_ = this->create_publisher<std_msgs::msg::String>("/planner_status", 10);
 
     click_sub_ = this->create_subscription<geometry_msgs::msg::PointStamped>(
       "/clicked_point", 10,
@@ -175,28 +211,30 @@ public:
     return true;
   }
 
-  void run_terminal_loop() {
+  // Returns when stdin closes or on 'quit'; the node keeps serving /planner_command until Ctrl-C.
+  bool run_terminal_loop() {
     std::string command;
-    if (!isatty(fileno(stdin))) {
-      RCLCPP_WARN(this->get_logger(), "Planner stdin is not attached to a terminal. Interactive commands may not work in this launch context.");
-      RCLCPP_WARN(this->get_logger(), "Use a publisher on /planner_command as a fallback command channel.");
-    }
     while (rclcpp::ok()) {
       std::cout << "\n[MENU] Enter a command:\n"
-                << "  'plan'                   -> Preview path in RViz\n"
+                << "  'point x y z [r p y]'    -> Add a task-space waypoint (world frame, m / rad)\n"
+                << "  'plan'                   -> Cartesian path through the waypoints, preview in RViz\n"
                 << "  'execute'                -> Move the simulated robot\n"
                 << "  'return home'            -> Add the starting position to the end of the path\n"
-                << "  'export joints'          -> Save interpolated trajectory in Joint Space CSV (rad)\n"
-                << "  'export cartesian'       -> Save clicked waypoints in Cartesian CSV (rad)\n"
-                << "  'clear'                  -> Reset waypoints\n"
+                << "  'export joints <name>'   -> Save the planned path as $UR5_DATA_DIR/waypoints/<name>.csv\n"
+                << "  'export cartesian <name>'-> Save the waypoints as a Cartesian CSV\n"
+                << "  'clear'                  -> Reset waypoints to the current pose\n"
+                << "  'quit'                   -> Exit\n"
                 << "Command: ";
-                
       if (!std::getline(std::cin, command)) {
-        RCLCPP_ERROR(this->get_logger(), "Planner stdin is not available. Launch with a TTY-backed terminal session.");
-        break;
+        RCLCPP_INFO(this->get_logger(), "stdin closed; still serving /planner_command (Ctrl-C to stop).");
+        return false;
+      }
+      if (resolve_command(command) == "quit") {
+        return true;
       }
       handle_command(command, "terminal");
     }
+    return true;
   }
 
 private:
@@ -204,132 +242,191 @@ private:
     handle_command(msg->data, "topic");
   }
 
+  void report(bool ok, const std::string& command, const std::string& detail) {
+    if (ok) {
+      RCLCPP_INFO(this->get_logger(), "%s: %s", command.c_str(), detail.c_str());
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "%s: %s", command.c_str(), detail.c_str());
+    }
+    std_msgs::msg::String msg;
+    msg.data = (ok ? "OK " : "ERROR ") + command + ": " + detail;
+    status_pub_->publish(msg);
+  }
+
   void handle_command(const std::string& raw_command, const std::string& source) {
     std::lock_guard<std::mutex> command_lock(command_mutex_);
 
-    const std::string resolved_command = resolve_command(raw_command);
-    if (resolved_command.empty()) {
+    const auto words = split_words(normalize_command(raw_command));
+    if (words.empty()) {
       return;
+    }
+    if (words[0] == "point") {
+      add_point_command(words);
+      return;
+    }
+    std::string resolved_command;
+    std::string name;
+    bool force = false;
+    if (words[0] == "export" && words.size() >= 3 && (words[1] == "joints" || words[1] == "cartesian")) {
+      resolved_command = "export " + words[1];
+      name = split_words(trim_copy(raw_command))[2];
+      force = words.size() >= 4 && words[3] == "force";
+    } else {
+      resolved_command = resolve_command(raw_command);
     }
 
     if (resolved_command == "plan") {
       std::vector<geometry_msgs::msg::Pose> waypoints_snapshot;
       {
         std::lock_guard<std::mutex> lock(data_mutex_);
-        if (waypoints_.size() < 2) {
-          RCLCPP_WARN(this->get_logger(), "Need more waypoints. Use 'Publish Point' in RViz.");
-          return;
-        }
         waypoints_snapshot = waypoints_;
       }
-
+      if (waypoints_snapshot.size() < 2) {
+        report(false, "plan", "need at least one waypoint after the start pose (point x y z, or RViz Publish Point)");
+        return;
+      }
       if (!move_group_) {
-        RCLCPP_ERROR(this->get_logger(), "Move group is not initialized.");
+        report(false, "plan", "move group is not initialized");
         return;
       }
 
-      const double eef_step = 0.01; // 1 cm resolution
+      const double eef_step = 0.01;
       moveit_msgs::msg::RobotTrajectory local_trajectory;
       const double fraction = move_group_->computeCartesianPath(waypoints_snapshot, eef_step, local_trajectory);
-
       {
         std::lock_guard<std::mutex> lock(data_mutex_);
         calculated_trajectory_ = local_trajectory;
-      }
-
-      if (fraction < 1.0) {
-        RCLCPP_WARN(this->get_logger(), "Path Calculation: %.2f%%. The straight line hit the table or joint limits!", fraction * 100.0);
-      } else {
-        RCLCPP_INFO(this->get_logger(), "Path Calculation: 100%% successful.");
+        plan_fraction_ = fraction;
       }
 
       auto current_state = move_group_->getCurrentState();
-      if (!current_state) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to fetch robot state! Ensure Gazebo is running.");
-        return;
+      if (current_state) {
+        moveit_msgs::msg::DisplayTrajectory display_msg;
+        moveit::core::robotStateToRobotStateMsg(*current_state, display_msg.trajectory_start);
+        display_msg.trajectory.push_back(local_trajectory);
+        display_pub_->publish(display_msg);
       }
-
-      moveit_msgs::msg::DisplayTrajectory display_msg;
-      moveit::core::robotStateToRobotStateMsg(*current_state, display_msg.trajectory_start);
-      display_msg.trajectory.push_back(calculated_trajectory_);
-      display_pub_->publish(display_msg);
+      if (fraction < 1.0) {
+        report(false, "plan", "only " + std::to_string(fraction * 100.0).substr(0, 5) +
+               "% of the Cartesian path is feasible (collision, joint limit or IK); move or remove waypoints");
+      } else {
+        report(true, "plan", std::to_string(local_trajectory.joint_trajectory.points.size()) + " points, 100% feasible");
+      }
       return;
     }
 
     if (resolved_command == "execute") {
       if (!move_group_) {
-        RCLCPP_ERROR(this->get_logger(), "Move group is not initialized.");
+        report(false, "execute", "move group is not initialized");
         return;
       }
-
       moveit_msgs::msg::RobotTrajectory trajectory_to_execute;
+      double fraction = 0.0;
       {
         std::lock_guard<std::mutex> lock(data_mutex_);
         trajectory_to_execute = calculated_trajectory_;
+        fraction = plan_fraction_;
       }
-
-      if (trajectory_to_execute.joint_trajectory.points.empty()) {
-        RCLCPP_WARN(this->get_logger(), "You must 'plan' successfully before executing.");
+      if (trajectory_to_execute.joint_trajectory.points.empty() || fraction < 1.0) {
+        report(false, "execute", "no fully feasible plan; run 'plan' first");
         return;
       }
-
-      RCLCPP_INFO(this->get_logger(), "Executing trajectory...");
-      move_group_->execute(trajectory_to_execute);
-
+      const auto code = move_group_->execute(trajectory_to_execute);
       {
         std::lock_guard<std::mutex> lock(data_mutex_);
         waypoints_.clear();
         waypoints_.push_back(move_group_->getCurrentPose().pose);
         calculated_trajectory_ = moveit_msgs::msg::RobotTrajectory();
+        plan_fraction_ = 0.0;
       }
+      report(code == moveit::core::MoveItErrorCode::SUCCESS, "execute",
+             code == moveit::core::MoveItErrorCode::SUCCESS ? "done" : "execution failed");
       return;
     }
 
     if (resolved_command == "return home") {
       {
         std::lock_guard<std::mutex> lock(data_mutex_);
-        if (waypoints_.empty()) {
-          RCLCPP_WARN(this->get_logger(), "No waypoints are initialized yet. Click a point in RViz or plan first.");
-          return;
-        }
         waypoints_.push_back(initial_pose_);
       }
-      RCLCPP_INFO(this->get_logger(), "Appended starting position to the path.");
+      report(true, "return home", "appended the starting pose");
       return;
     }
 
-    if (resolved_command == "export joints") {
-      export_joints_csv();
-      return;
-    }
-
-    if (resolved_command == "export cartesian") {
-      export_cartesian_csv();
+    if (resolved_command == "export joints" || resolved_command == "export cartesian") {
+      if (name.empty()) {
+        report(false, resolved_command, "needs a name: '" + resolved_command + " <name> [force]'");
+        return;
+      }
+      if (!valid_name(name)) {
+        report(false, resolved_command, "invalid name '" + name + "': letters, digits, _ . - only");
+        return;
+      }
+      if (resolved_command == "export joints") {
+        export_joints_csv(name, force);
+      } else {
+        export_cartesian_csv(name, force);
+      }
       return;
     }
 
     if (resolved_command == "clear") {
       if (!move_group_) {
-        RCLCPP_ERROR(this->get_logger(), "Move group is not initialized.");
+        report(false, "clear", "move group is not initialized");
         return;
       }
-
       {
         std::lock_guard<std::mutex> lock(data_mutex_);
         waypoints_.clear();
         waypoints_.push_back(move_group_->getCurrentPose().pose);
         calculated_trajectory_ = moveit_msgs::msg::RobotTrajectory();
+        plan_fraction_ = 0.0;
       }
-      RCLCPP_INFO(this->get_logger(), "Waypoints cleared.");
+      report(true, "clear", "waypoints reset to the current pose");
       return;
     }
 
-    if (resolved_command == "export") {
-      RCLCPP_WARN(this->get_logger(), "Export needs a suffix. Use 'export joints' or 'export cartesian'.");
+    report(false, "command", "unknown " + source + " command '" + raw_command +
+           "'; try point, plan, execute, return home, export joints <name>, export cartesian <name>, clear");
+  }
+
+  void add_point_command(const std::vector<std::string>& words) {
+    if (words.size() != 4 && words.size() != 7) {
+      report(false, "point", "usage: point x y z [roll pitch yaw]");
       return;
     }
-
-    RCLCPP_WARN(this->get_logger(), "Unknown %s command: '%s'. Try plan, execute, return home, export joints, export cartesian, or clear.", source.c_str(), raw_command.c_str());
+    std::vector<double> v;
+    try {
+      for (size_t i = 1; i < words.size(); ++i) {
+        size_t used = 0;
+        v.push_back(std::stod(words[i], &used));
+        if (used != words[i].size() || !std::isfinite(v.back())) {
+          throw std::invalid_argument(words[i]);
+        }
+      }
+    } catch (const std::exception&) {
+      report(false, "point", "non-numeric value in '" + trim_copy(words.size() > 1 ? words[1] : "") + "...'");
+      return;
+    }
+    size_t n = 0;
+    {
+      std::lock_guard<std::mutex> lock(data_mutex_);
+      geometry_msgs::msg::Pose pose = waypoints_.empty() ? initial_pose_ : waypoints_.back();
+      pose.position.x = v[0];
+      pose.position.y = v[1];
+      pose.position.z = v[2];
+      if (v.size() == 6) {
+        tf2::Quaternion q;
+        q.setRPY(v[3], v[4], v[5]);
+        pose.orientation.x = q.x();
+        pose.orientation.y = q.y();
+        pose.orientation.z = q.z();
+        pose.orientation.w = q.w();
+      }
+      waypoints_.push_back(pose);
+      n = waypoints_.size() - 1;
+    }
+    report(true, "point", "waypoint " + std::to_string(n) + " added");
   }
 
   void point_callback(const geometry_msgs::msg::PointStamped::SharedPtr msg) {
@@ -341,7 +438,7 @@ private:
       waypoints_.push_back(seed_pose);
     }
 
-    geometry_msgs::msg::Pose new_waypoint = waypoints_.back(); // Keep previous orientation
+    geometry_msgs::msg::Pose new_waypoint = waypoints_.back();
     new_waypoint.position.x = msg->point.x;
     new_waypoint.position.y = msg->point.y;
     new_waypoint.position.z = msg->point.z;
@@ -351,75 +448,118 @@ private:
                 waypoints_.size() - 1, msg->point.x, msg->point.y, msg->point.z);
   }
 
-  // EXPORT 1: Joint-Space CSV for interactive controller ingestion.
-  void export_joints_csv() {
+  bool open_export(const std::string& command, const std::string& name, bool force,
+                   std::filesystem::path& out_path, std::ofstream& file) {
+    std::error_code ec;
+    std::filesystem::create_directories(waypoints_dir_, ec);
+    out_path = waypoints_dir_ / (name + ".csv");
+    if (std::filesystem::exists(out_path) && !force) {
+      report(false, command, out_path.string() + " exists; pick another name or append 'force'");
+      return false;
+    }
+    file.open(out_path.string() + ".part");
+    if (!file.is_open()) {
+      report(false, command, "cannot write " + out_path.string() + "; set UR5_DATA_DIR to a writable directory");
+      return false;
+    }
+    return true;
+  }
+
+  // Joint CSV in controller joint order. Rows are rest-to-rest waypoints for Brain A, so the
+  // dense planner output is thinned to one row per min_export_dt seconds plus the final point.
+  void export_joints_csv(const std::string& name, bool force) {
     moveit_msgs::msg::RobotTrajectory traj_snapshot;
+    double fraction = 0.0;
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
       traj_snapshot = calculated_trajectory_;
+      fraction = plan_fraction_;
     }
-
     if (traj_snapshot.joint_trajectory.points.empty()) {
-      RCLCPP_ERROR(this->get_logger(), "No trajectory calculated! Type 'plan' first.");
+      report(false, "export joints", "no plan; run 'plan' first");
+      return;
+    }
+    if (fraction < 1.0) {
+      report(false, "export joints", "refused: the last plan covered only part of the path");
       return;
     }
 
-    const std::filesystem::path out_path = waypoints_dir_ / "trajectory_joints_export.csv";
-    std::ofstream file(out_path);
-    if (!file.is_open()) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to open %s for writing.", out_path.c_str());
-      return;
-    }
-
-    auto joint_traj = traj_snapshot.joint_trajectory;
-    // Canonical controller YAML order — remap each point by name (D-003).
     static const std::vector<std::string> kCanonical = {
       "shoulder_pan_joint1", "shoulder_pan_joint", "shoulder_lift_joint",
       "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"
     };
-
-    file << "time_sec";
-    for (const auto& name : kCanonical) {
-      file << "," << name;
-    }
-    file << "\n";
-
-    for (const auto& point : joint_traj.points) {
-      double time_sec = point.time_from_start.sec + (point.time_from_start.nanosec * 1e-9);
-      file << time_sec;
-
+    const auto& joint_traj = traj_snapshot.joint_trajectory;
+    std::vector<std::pair<double, std::vector<double>>> rows;
+    double last_t = 0.0;
+    for (size_t k = 0; k < joint_traj.points.size(); ++k) {
+      const auto& point = joint_traj.points[k];
+      const double t = point.time_from_start.sec + point.time_from_start.nanosec * 1e-9;
+      const bool final_point = k + 1 == joint_traj.points.size();
+      if (t <= 0.0 || (!final_point && t - last_t < min_export_dt_)) {
+        continue;
+      }
       std::map<std::string, double> by_name;
       for (size_t i = 0; i < joint_traj.joint_names.size() && i < point.positions.size(); ++i) {
         by_name[joint_traj.joint_names[i]] = point.positions[i];
       }
-      for (const auto& name : kCanonical) {
-        const auto it = by_name.find(name);
-        file << "," << (it != by_name.end() ? it->second : 0.0);
+      std::vector<double> q;
+      for (const auto& jn : kCanonical) {
+        const auto it = by_name.find(jn);
+        if (it == by_name.end()) {
+          report(false, "export joints", "planned trajectory lacks joint " + jn);
+          return;
+        }
+        q.push_back(it->second);
+      }
+      if (final_point && !rows.empty() && t - rows.back().first < min_export_dt_) {
+        rows.back() = {std::max(t, rows.back().first), q};
+      } else {
+        rows.emplace_back(t, q);
+      }
+      last_t = t;
+    }
+    if (rows.empty()) {
+      report(false, "export joints", "planned trajectory has no timed points");
+      return;
+    }
+
+    std::filesystem::path out_path;
+    std::ofstream file;
+    if (!open_export("export joints", name, force, out_path, file)) {
+      return;
+    }
+    file << "time_sec";
+    for (const auto& jn : kCanonical) {
+      file << "," << jn;
+    }
+    file << "\n";
+    file.precision(6);
+    for (const auto& [t, q] : rows) {
+      file << std::fixed << t;
+      for (double v : q) {
+        file << "," << v;
       }
       file << "\n";
     }
     file.close();
-    RCLCPP_INFO(this->get_logger(), "Saved %zu joint-space waypoints to %s.",
-                joint_traj.points.size(), out_path.c_str());
+    std::filesystem::rename(out_path.string() + ".part", out_path);
+    report(true, "export joints", "wrote " + std::to_string(rows.size()) + " rows to " + out_path.string());
   }
 
-  // EXPORT 2: Cartesian CSV for interactive controller ingestion.
-  void export_cartesian_csv() {
+  void export_cartesian_csv(const std::string& name, bool force) {
     std::vector<geometry_msgs::msg::Pose> waypoints_snapshot;
     {
       std::lock_guard<std::mutex> lock(data_mutex_);
       waypoints_snapshot = waypoints_;
     }
-
     if (waypoints_snapshot.size() < 2) {
-      RCLCPP_ERROR(this->get_logger(), "Need at least two waypoints before exporting cartesian data. Click points in RViz first.");
+      report(false, "export cartesian", "need at least one waypoint after the start pose");
       return;
     }
 
-    const std::filesystem::path out_path = waypoints_dir_ / "trajectory_cartesian_export.csv";
-    std::ofstream file(out_path);
-    if (!file.is_open()) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to open %s for writing.", out_path.c_str());
+    std::filesystem::path out_path;
+    std::ofstream file;
+    if (!open_export("export cartesian", name, force, out_path, file)) {
       return;
     }
 
@@ -446,19 +586,23 @@ private:
            << roll << "," << pitch << "," << yaw << "\n";
     }
     file.close();
-    RCLCPP_INFO(this->get_logger(), "Saved %zu cartesian waypoints to %s.",
-                waypoints_snapshot.size(), out_path.c_str());
+    std::filesystem::rename(out_path.string() + ".part", out_path);
+    report(true, "export cartesian", "wrote " + std::to_string(waypoints_snapshot.size()) +
+           " rows to " + out_path.string());
   }
 
   rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr click_sub_;
   rclcpp::CallbackGroup::SharedPtr command_cb_group_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr command_sub_;
   rclcpp::Publisher<moveit_msgs::msg::DisplayTrajectory>::SharedPtr display_pub_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr status_pub_;
   std::shared_ptr<moveit::planning_interface::MoveGroupInterface> move_group_;
   std::mutex data_mutex_;
   std::mutex command_mutex_;
   std::filesystem::path waypoints_dir_;
-  
+  double min_export_dt_ = 0.5;
+  double plan_fraction_ = 0.0;
+
   geometry_msgs::msg::Pose initial_pose_;
   std::vector<geometry_msgs::msg::Pose> waypoints_;
   moveit_msgs::msg::RobotTrajectory calculated_trajectory_;
@@ -478,9 +622,10 @@ int main(int argc, char** argv) {
     spinner.join();
     return 1;
   }
-  node->run_terminal_loop();
-
-  rclcpp::shutdown();
+  RCLCPP_INFO(node->get_logger(), "Planner ready; commands on /planner_command, replies on /planner_status.");
+  if (isatty(fileno(stdin)) && node->run_terminal_loop()) {
+    rclcpp::shutdown();
+  }
   spinner.join();
   return 0;
 }
