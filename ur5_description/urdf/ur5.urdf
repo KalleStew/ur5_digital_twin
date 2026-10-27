@@ -219,11 +219,6 @@
         <!-- Candle Pose IC: vertical arm clears the workbench at first physics step.
              Values MUST match SRDF group_state candle_pose (ur57_arm.srdf). -->
         <joint name="shoulder_pan_joint1">
-            <!-- GAZEBO PHYSICS GAINS MUST BE DIRECTLY UNDER THE JOINT -->
-            <param name="p">20000.0</param>
-            <param name="i">100.0</param>
-            <param name="d">500.0</param>
-            
             <command_interface name="position"/>
             <command_interface name="effort"/>
             <state_interface name="position">
@@ -234,10 +229,6 @@
         </joint>
 
         <joint name="shoulder_pan_joint">
-            <param name="p">20000.0</param>
-            <param name="i">100.0</param>
-            <param name="d">500.0</param>
-            
             <command_interface name="position"/>
             <command_interface name="effort"/>
             <state_interface name="position">
@@ -248,10 +239,6 @@
         </joint>
 
         <joint name="shoulder_lift_joint">
-            <param name="p">30000.0</param>
-            <param name="i">200.0</param>
-            <param name="d">1000.0</param>
-            
             <command_interface name="position"/>
             <command_interface name="effort"/>
             <state_interface name="position">
@@ -262,10 +249,6 @@
         </joint>
 
         <joint name="elbow_joint">
-            <param name="p">15000.0</param>
-            <param name="i">100.0</param>
-            <param name="d">500.0</param>
-            
             <command_interface name="position"/>
             <command_interface name="effort"/>
             <state_interface name="position">
@@ -276,10 +259,6 @@
         </joint>
 
         <joint name="wrist_1_joint">
-            <param name="p">2000.0</param>
-            <param name="i">50.0</param>
-            <param name="d">100.0</param>
-            
             <command_interface name="position"/>
             <command_interface name="effort"/>
             <state_interface name="position">
@@ -290,10 +269,6 @@
         </joint>
 
         <joint name="wrist_2_joint">
-            <param name="p">2000.0</param>
-            <param name="i">50.0</param>
-            <param name="d">100.0</param>
-            
             <command_interface name="position"/>
             <command_interface name="effort"/>
             <state_interface name="position">
@@ -304,10 +279,6 @@
         </joint>
 
         <joint name="wrist_3_joint">
-            <param name="p">1000.0</param>
-            <param name="i">10.0</param>
-            <param name="d">50.0</param>
-            
             <command_interface name="position"/>
             <command_interface name="effort"/>
             <state_interface name="position">
