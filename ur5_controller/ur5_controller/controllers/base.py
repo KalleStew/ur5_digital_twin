@@ -14,11 +14,13 @@ class TorqueController:
 
     family = 'model-based'
 
-    def __init__(self, dynamics, gains: dict, joints, nominal: NominalModel | None = None) -> None:
+    def __init__(self, dynamics, gains: dict, joints, nominal: NominalModel | None = None,
+                 gain_pose=None) -> None:
         self.dyn = dynamics
         self.nominal = nominal if nominal is not None else NominalModel(dynamics)
         self.joints = tuple(joints)
         self.gains = gains
+        self.gain_pose = gain_pose
         self.kp = self._vec('kp')
         self.kd = self._vec('kd')
 
@@ -44,6 +46,10 @@ class TorqueController:
                 'nominal_model': self.model_description(),
                 'viscous_velocity_source': 'none', 'coulomb_velocity_source': 'none'}
 
+    def gain_metadata(self) -> dict:
+        """Gain protocol and the gains compute() applies, for the HDF5 metadata."""
+        return {'gain_protocol': 'none', 'gains_effective': {'kp': self.kp.tolist(), 'kd': self.kd.tolist()}}
+
     def reset(self) -> None:
         """Called before each trial."""
 
@@ -52,7 +58,7 @@ class TorqueController:
 
 
 def load_controller(plugin: str, dynamics, gains: dict, joints,
-                    nominal: NominalModel | None = None) -> TorqueController:
+                    nominal: NominalModel | None = None, gain_pose=None) -> TorqueController:
     if not plugin.replace('_', '').isalnum():
         raise InputError(f'invalid controller plug-in name {plugin!r}')
     try:
@@ -62,4 +68,4 @@ def load_controller(plugin: str, dynamics, gains: dict, joints,
     cls = getattr(mod, 'Controller', None)
     if cls is None or not issubclass(cls, TorqueController):
         raise InputError(f'{plugin}.py must define Controller(TorqueController)')
-    return cls(dynamics, gains or {}, joints, nominal)
+    return cls(dynamics, gains or {}, joints, nominal, gain_pose)

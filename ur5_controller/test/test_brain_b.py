@@ -102,6 +102,44 @@ def test_shipped_experiments_load(dyn, name):
     assert exp.trials and 'rigid_body' in NominalModel(dyn, exp.model_terms, exp.coulomb_epsilon).terms
 
 
+@pytest.mark.parametrize('name', sorted(os.listdir(EXPERIMENTS)))
+def test_shipped_gains_follow_pd_gravity(name):
+    """Joint-space feedback gains are the PD + gravity values; CT converts them by protocol."""
+    import yaml
+    with open(os.path.join(EXPERIMENTS, name)) as f:
+        ctrls = {c['plugin']: c.get('gains', {}) for c in yaml.safe_load(f)['controllers']}
+    ref = ctrls['pd_gravity']
+    for plugin, g in ctrls.items():
+        assert (g['kp'], g['kd']) == (ref['kp'], ref['kd']), plugin
+    if 'computed_torque' in ctrls:
+        assert ctrls['computed_torque']['protocol'] == 'joint_gain_match_at_candle'
+
+
+def test_computed_torque_gain_matching(model, dyn):
+    g = {'protocol': 'joint_gain_match_at_candle', **GAINS}
+    ct = load_controller('computed_torque', dyn, g, model.joints, gain_pose=model.candle)
+    m = np.diag(dyn.M(model.candle))
+    assert np.allclose(ct.kp * m, GAINS['kp']) and np.allclose(ct.kd * m, GAINS['kd'])
+    meta = ct.gain_metadata()
+    assert meta['gain_protocol'] == 'joint_gain_match_at_candle'
+    assert np.allclose(meta['gain_match_m_eff'], m) and np.allclose(meta['gains_effective']['kp'], ct.kp)
+    q = np.array(model.candle)
+    z = np.zeros(7)
+    ref = q.copy()
+    ref[4] += 0.01
+    zero_terms = NominalModel(dyn, ['rigid_body'])
+    ct0 = load_controller('computed_torque', dyn, g, model.joints, zero_terms, gain_pose=model.candle)
+    tau = ct0.compute(0, q, z, ref, z, z) - dyn.g(q)
+    assert tau[4] == pytest.approx(GAINS['kp'][4] * 0.01)
+    with pytest.raises(InputError, match='Candle'):
+        load_controller('computed_torque', dyn, g, model.joints)
+    with pytest.raises(InputError, match='protocol'):
+        load_controller('computed_torque', dyn, dict(GAINS, protocol='auto'), model.joints)
+    pd = load_controller('pd_id_ff', dyn, GAINS, model.joints)
+    assert pd.gain_metadata()['gain_protocol'] == 'none'
+    assert np.allclose(pd.kp, GAINS['kp']) and np.allclose(pd.kd, GAINS['kd'])
+
+
 def test_pd_terms_oppose_error(model, dyn):
     c = load_controller('pd_gravity', dyn, GAINS, model.joints)
     q = np.array(model.candle)

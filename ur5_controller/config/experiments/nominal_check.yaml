@@ -16,10 +16,12 @@ controllers:
     gains:
       kp: [300, 300, 600, 300, 50, 30, 10]
       kd: [10, 10, 40, 10, 0.5, 0.3, 0.1]
+  # Same N m/rad gains as pd_gravity, divided at runtime by M_jj(q_candle) of the nominal model.
   - plugin: computed_torque
     gains:
-      kp: [100, 100, 100, 100, 100, 100, 100]
-      kd: [20, 20, 20, 20, 20, 20, 20]
+      protocol: joint_gain_match_at_candle
+      kp: [300, 300, 600, 300, 50, 30, 10]
+      kd: [10, 10, 40, 10, 0.5, 0.3, 0.1]
 perturbations:
   - type: none
     levels: [0]

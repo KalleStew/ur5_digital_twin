@@ -273,7 +273,8 @@ class TorqueScheme(Scheme):
     def _prepare(self, exp: Experiment, trial: Trial, nominal: NominalModel):
         path = resolve_waypoints(trial.trajectory)
         wps = load_joint_csv(path, self.model, start=self.model.candle)
-        ctrl = load_controller(trial.plugin, self.dyn, trial.gains, self.model.joints, nominal)
+        ctrl = load_controller(trial.plugin, self.dyn, trial.gains, self.model.joints, nominal,
+                               gain_pose=self.model.candle)
         pert = Perturbation(trial.perturbation, trial.level, trial.seed, self.cfg['model'],
                             len(self.model.joints))
         return path, wps, ctrl, pert
@@ -339,7 +340,7 @@ class TorqueScheme(Scheme):
             'hold_sec': exp.hold_sec, 'post_hold_sec': exp.post_hold_sec,
             'overruns': loop.overruns, 'gaps': loop.gaps, 'saturated_samples': loop.saturated,
             'max_compute_latency_ms': loop.max_latency_ms,
-            **ctrl.model_metadata(),
+            **ctrl.model_metadata(), **ctrl.gain_metadata(),
             'result': 'ok' if failure is None else failure.reason,
             'preflight_after': post.reason, **metrics,
         }

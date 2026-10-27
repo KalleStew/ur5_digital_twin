@@ -17,8 +17,8 @@ from .base import TorqueController
 class Controller(TorqueController):
     family = 'learned'
 
-    def __init__(self, dynamics, gains, joints, nominal=None):
-        super().__init__(dynamics, gains, joints, nominal)
+    def __init__(self, dynamics, gains, joints, nominal=None, gain_pose=None):
+        super().__init__(dynamics, gains, joints, nominal, gain_pose)
         path = gains.get('model')
         if not path:
             raise InputError('learned_id: gains.model (path to .npz weights) is required')
