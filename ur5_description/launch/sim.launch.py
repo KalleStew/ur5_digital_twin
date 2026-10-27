@@ -1,10 +1,9 @@
 import os
-from ament_index_python.packages import get_package_prefix, get_package_share_directory
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import (
     AppendEnvironmentVariable,
     DeclareLaunchArgument,
-    ExecuteProcess,
     IncludeLaunchDescription,
     OpaqueFunction,
     RegisterEventHandler,
@@ -128,22 +127,6 @@ def generate_launch_description():
         output='screen',
     )
 
-    # After JTC activates it often holds zeros (arm flat on table). Command Candle.
-    hold_candle_script = os.path.join(
-        get_package_prefix(pkg_name), 'lib', pkg_name, 'hold_candle.py'
-    )
-    # Fallback to source tree when running without install (dev).
-    if not os.path.isfile(hold_candle_script):
-        hold_candle_script = os.path.join(
-            os.path.dirname(__file__), '..', 'scripts', 'hold_candle.py'
-        )
-    hold_candle = ExecuteProcess(
-        cmd=['python3', hold_candle_script],
-        output='screen',
-        name='hold_candle',
-    )
-    delayed_hold_candle = TimerAction(period=1.0, actions=[hold_candle])
-
     delayed_jsb = TimerAction(
         period=2.0,
         actions=[load_joint_state_broadcaster],
@@ -171,7 +154,7 @@ def generate_launch_description():
         RegisterEventHandler(
             event_handler=OnProcessExit(
                 target_action=load_arm_controller,
-                on_exit=[load_effort_controller, delayed_hold_candle],
+                on_exit=[load_effort_controller],
             )
         ),
     ])
