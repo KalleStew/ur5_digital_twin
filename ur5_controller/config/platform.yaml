@@ -1,0 +1,65 @@
+# Controller, action and topic names, plus the acceptance numbers every scheme uses.
+# Point these at different controllers to reuse the schemes on other hardware.
+controller_manager: /controller_manager
+joint_state_broadcaster: joint_state_broadcaster
+
+brain_a:
+  controller: ur_manipulator_controller
+  action: /ur_manipulator_controller/follow_joint_trajectory
+  state_topic: /ur_manipulator_controller/controller_state
+
+brain_b:
+  controller: forward_effort_controller
+  command_topic: /forward_effort_controller/commands
+
+topics:
+  joint_states: /joint_states
+  clock: /clock
+
+moveit:
+  group: ur_manipulator
+  frame: world
+  compute_ik: /compute_ik
+  check_state_validity: /check_state_validity
+  srdf_package: ur5_moveit_config
+  srdf_file: config/ur57_arm.srdf
+  candle_state: candle_pose
+
+model:
+  urdf_package: ur5_description
+  urdf_file: urdf/ur5.urdf
+  base_link: base_link
+  tip_link: tool0
+  gz_world: empty
+  gz_model: ur5_arm
+  gz_tip_link: wrist_3_link
+
+candle:
+  max_error_rad: 0.005
+  max_rms_velocity: 0.001
+  settle_sec: 1.0
+  move_sec: 5.0
+  goal_time_tolerance_sec: 5.0
+  # Wall-clock give-up for one pre-flight attempt.
+  timeout_sec: 90.0
+
+brain_a_execution:
+  goal_position_tol: 0.05
+  goal_velocity_tol: 0.05
+  goal_time_tolerance_sec: 2.0
+  collision_step_rad: 0.02
+
+brain_b_loop:
+  rate_hz: 100.0
+  stale_ms: 50.0
+  # Fraction of the URDF velocity limit that trips the watchdog.
+  velocity_fraction: 0.9
+  # Margin inside the URDF position limits that trips the watchdog.
+  position_margin_rad: 0.05
+  # Wall-clock give-up when /clock stops advancing (paused or dead sim).
+  clock_stall_sec: 2.0
+
+# PD + gravity gains for `ur5 brain b` pose holds (N m/rad, N m s/rad).
+brain_b_hold_gains:
+  kp: [300, 300, 600, 300, 50, 30, 10]
+  kd: [10, 10, 40, 10, 0.5, 0.3, 0.1]
