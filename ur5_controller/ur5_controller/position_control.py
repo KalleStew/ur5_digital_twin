@@ -45,6 +45,19 @@ class PositionSpec:
     force: bool = False
 
 
+def load_spec(spec: PositionSpec, model: Model) -> tuple[Waypoints, str]:
+    """Validate the CSV before any motion; needs no ROS. Returns (waypoints, telemetry output path)."""
+    path = resolve_waypoints(spec.csv)
+    kind = detect_kind(path)
+    if spec.mode and spec.mode != kind:
+        raise InputError(f'{os.path.basename(path)} is a {kind} CSV but --mode {spec.mode} was given')
+    wps = (load_cartesian_csv(path) if kind == 'cartesian'
+           else load_joint_csv(path, model, start=model.candle))
+    out = spec.out or (f'{os.path.splitext(os.path.basename(path))[0]}_'
+                       f'{dt.datetime.now().strftime("%Y%m%d_%H%M%S")}')
+    return wps, telemetry_path(out, spec.force)
+
+
 class PositionScheme(Scheme):
     def __init__(self, node, cfg: dict, model: Model, state: StateCache, brains: Brains,
                  preflight: Preflight) -> None:
@@ -80,16 +93,7 @@ class PositionScheme(Scheme):
 
     # ---- input ----
     def load(self, spec: PositionSpec) -> tuple[Waypoints, str]:
-        """Validate the CSV before any motion. Returns (waypoints, telemetry output path)."""
-        path = resolve_waypoints(spec.csv)
-        kind = detect_kind(path)
-        if spec.mode and spec.mode != kind:
-            raise InputError(f'{os.path.basename(path)} is a {kind} CSV but --mode {spec.mode} was given')
-        wps = (load_cartesian_csv(path) if kind == 'cartesian'
-               else load_joint_csv(path, self.model, start=self.model.candle))
-        out = spec.out or (f'{os.path.splitext(os.path.basename(path))[0]}_'
-                           f'{dt.datetime.now().strftime("%Y%m%d_%H%M%S")}')
-        return wps, telemetry_path(out, spec.force)
+        return load_spec(spec, self.model)
 
     def solve_cartesian(self, wps: Waypoints) -> list[list[float]]:
         """IK per row, seeded by the previous solution. Any failure aborts the whole run."""

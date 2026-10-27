@@ -24,7 +24,7 @@ from rclpy.parameter import Parameter
 from rclpy.signals import SignalHandlerOptions
 
 from ur5_controller.brain import Brains
-from ur5_controller.position_control import PositionScheme, PositionSpec
+from ur5_controller.position_control import PositionScheme, PositionSpec, load_spec
 from ur5_controller.preflight import Preflight
 from ur5_controller.robot import load_model, load_platform, resolve_file, state_cache
 from ur5_controller.scheme import (EXIT_INPUT, EXIT_INTERRUPTED, EXIT_OK, EXIT_PLATFORM, InputError,
@@ -36,9 +36,10 @@ MODES = {'1': 'joint', '2': 'cartesian', 'joint': 'joint', 'cartesian': 'cartesi
 
 
 class App:
-    def __init__(self, node: Node, args) -> None:
+    def __init__(self, node: Node, args, loaded=None) -> None:
         self.node = node
         self.args = args
+        self.loaded = loaded
         self.cfg = load_platform()
         self.model = load_model(self.cfg)
         self.state = state_cache(node, self.model, self.cfg)
@@ -78,7 +79,8 @@ class App:
             elif (a.scheme or ('torque' if a.experiment else 'position')) == 'torque':
                 self.result = self.torque_stages(a.experiment, a.trial, a.seed, a.force)
             else:
-                self.result = self.position_stages(PositionSpec(a.csv, MODES[a.mode or ''], a.out, a.force))
+                self.result = self.position_stages(PositionSpec(a.csv, MODES[a.mode or ''], a.out, a.force),
+                                                   self.loaded)
         except (InputError, PlatformError) as e:
             self.result = RunResult.fail(e.code, str(e))
         except EOFError:
@@ -152,12 +154,23 @@ def main(argv=None) -> int:
     if args.scheme == 'torque' and (args.csv or args.mode):
         print('--csv/--mode belong to --scheme position', file=sys.stderr)
         return EXIT_INPUT
+    loaded = None
+    if args.csv and args.scheme != 'torque':
+        try:
+            loaded = load_spec(PositionSpec(args.csv, MODES[args.mode or ''], args.out, args.force),
+                               load_model(load_platform()))
+        except InputError as e:
+            print(f'FAIL: {e}', file=sys.stderr)
+            return e.code
+        except (FileNotFoundError, KeyError, ValueError) as e:
+            print(f'cannot load platform model: {e}', file=sys.stderr)
+            return EXIT_PLATFORM
 
     rclpy.init(args=ros_args, signal_handler_options=SignalHandlerOptions.NO)
     node = Node('ur5_interactive_control',
                 parameter_overrides=[Parameter('use_sim_time', Parameter.Type.BOOL, True)])
     try:
-        app = App(node, args)
+        app = App(node, args, loaded)
     except (FileNotFoundError, KeyError, ValueError) as e:
         print(f'cannot load platform model: {e}', file=sys.stderr)
         node.destroy_node()
