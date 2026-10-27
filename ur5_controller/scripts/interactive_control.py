@@ -1,469 +1,196 @@
 #!/usr/bin/env python3
-import rclpy
-from rclpy.node import Node
-from rclpy.action import ActionClient
-from rclpy.parameter import Parameter
-from control_msgs.action import FollowJointTrajectory
-from control_msgs.msg import JointTolerance
-from trajectory_msgs.msg import JointTrajectoryPoint
-from sensor_msgs.msg import JointState
-from moveit_msgs.srv import GetPositionIK
-import csv
+"""UR5 operator entry point: interactive menu or flags, one stage order for every scheme.
+
+  interactive_control.py
+  interactive_control.py --scheme position --mode joint|cartesian --csv <file> [--out <name>]
+  interactive_control.py --scheme torque --experiment <file.yaml> [--trial <id>] [--seed <n>]
+
+Exit codes: 0 ok, 1 run failed, 2 input rejected (no motion), 3 platform not ready,
+4 safety abort, 130 interrupted.
+"""
+from __future__ import annotations
+
+import argparse
+import glob
 import os
+import signal
+import sys
 import threading
-import importlib
-import math
 
-try:
-    from ament_index_python.packages import get_package_share_directory
-except ImportError:
-    get_package_share_directory = None
+import rclpy
+from rclpy.executors import SingleThreadedExecutor
+from rclpy.node import Node
+from rclpy.parameter import Parameter
+from rclpy.signals import SignalHandlerOptions
 
-np = None
-h5py = None
-butter = None
-filtfilt = None
+from ur5_controller.brain import Brains
+from ur5_controller.position_control import PositionScheme, PositionSpec
+from ur5_controller.preflight import Preflight
+from ur5_controller.robot import load_model, load_platform, resolve_file, state_cache
+from ur5_controller.scheme import (EXIT_INPUT, EXIT_INTERRUPTED, EXIT_OK, EXIT_PLATFORM, InputError,
+                                   PlatformError, RunResult)
+from ur5_controller.telemetry import write_h5
+from ur5_controller.trajectory_io import data_dir, shipped_waypoints_dir
 
-try:
-    np = importlib.import_module('numpy')
-except ImportError:
-    pass
+MODES = {'1': 'joint', '2': 'cartesian', 'joint': 'joint', 'cartesian': 'cartesian', '': ''}
 
-try:
-    h5py = importlib.import_module('h5py')
-except ImportError:
-    pass
 
-try:
-    scipy_signal = importlib.import_module('scipy.signal')
-    butter = scipy_signal.butter
-    filtfilt = scipy_signal.filtfilt
-except ImportError:
-    pass
+class App:
+    def __init__(self, node: Node, args) -> None:
+        self.node = node
+        self.args = args
+        self.cfg = load_platform()
+        self.model = load_model(self.cfg)
+        self.state = state_cache(node, self.model, self.cfg)
+        self.brains = Brains(node, self.cfg)
+        self.pre = Preflight(node, self.cfg, self.model, self.state, self.brains)
+        self.position = PositionScheme(node, self.cfg, self.model, self.state, self.brains, self.pre)
+        self._torque = None
+        self.active = None
+        self.result = RunResult.fail(EXIT_INTERRUPTED, 'interrupted')
+        self.in_prompt = False
 
-class InteractiveHILController(Node):
-    def __init__(self, csv_path='', mode='', out_name='run_log'):
-        super().__init__('interactive_hil_controller', 
-                         parameter_overrides=[Parameter('use_sim_time', Parameter.Type.BOOL, True)])
-        
-        # --- Core ROS 2 Interfaces ---
-        self.action_client = ActionClient(self, FollowJointTrajectory, '/ur_manipulator_controller/follow_joint_trajectory')
-        self.state_sub = self.create_subscription(JointState, '/joint_states', self.sensor_callback, 10)
-        
-        # IK Service Client for Cartesian Mode
-        self.ik_client = self.create_client(GetPositionIK, '/compute_ik')
-        
-        # --- Data Recording Variables ---
-        self.is_recording = False # Do not start recording until trajectory begins
-        self.telemetry_data = []
-        self.joint_names = [
-            'shoulder_pan_joint1', 'shoulder_pan_joint', 'shoulder_lift_joint',
-            'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
-        ]
-        # Candle Pose — must match URDF initial_value + SRDF candle_pose
-        self.candle_pose = [0.0, 0.0, -1.5708, 0.0, 0.0, 0.0, 0.0]
-        self.out_name = out_name
+    @property
+    def torque(self):
+        if self._torque is None:
+            from ur5_controller.torque_control import TorqueScheme
+            self._torque = TorqueScheme(self.node, self.cfg, self.model, self.state, self.brains,
+                                        self.pre)
+        return self._torque
 
-        self.waypoints_dir = self._resolve_waypoints_dir()
+    def abort(self) -> None:
+        if self.active is not None:
+            self.active.abort()
+        self.pre.abort()
 
-        # --- Threading Events ---
-        self.trajectory_event = threading.Event()
-        self.ik_event = threading.Event()
-        self.ik_result_msg = None
-        
-        if csv_path or mode:
-            target = lambda: self.run_batch(csv_path, mode, out_name)
-        else:
-            target = self.run_interactive_cli
-        self.control_thread = threading.Thread(target=target)
-        self.control_thread.daemon = True
-        self.control_thread.start()
+    def prompt(self, text: str) -> str:
+        self.in_prompt = True
+        try:
+            return input(text).strip()
+        finally:
+            self.in_prompt = False
 
-    @staticmethod
-    def _resolve_waypoints_dir():
-        """Same resolution as multi_waypoint_planner: package share, else src-adjacent."""
-        if get_package_share_directory is not None:
-            try:
-                return os.path.join(get_package_share_directory('ur5_controller'), 'waypoints')
-            except Exception:
-                pass
-        here = os.path.dirname(os.path.abspath(__file__))
-        return os.path.join(here, 'waypoints')
-
-    @staticmethod
-    def parse_time_to_ros_duration(time_value):
-        """Convert float/int seconds into ROS duration sec + nanosec components."""
-        total_seconds = max(0.0, float(time_value))
-        sec = int(total_seconds)
-        nanosec = int(round((total_seconds - sec) * 1e9))
-
-        # Clamp rounding spillover into the seconds field.
-        if nanosec >= 1_000_000_000:
-            sec += 1
-            nanosec -= 1_000_000_000
-        return sec, nanosec
-
-    def run_batch(self, csv_path, mode, out_name):
-        """Non-interactive Stage 3+4 path for harness / ur5run."""
-        is_cartesian = mode in ('2', 'cartesian')
-        filename = csv_path or ('default_cartesian.csv' if is_cartesian else 'default_joint.csv')
-        filepath = filename if os.path.isabs(filename) else os.path.join(
-            self.waypoints_dir, os.path.basename(filename))
-        if not os.path.exists(filepath):
-            self.get_logger().error(f'File not found: {filepath}')
-            rclpy.shutdown()
-            return
-        self.get_logger().info(f'Batch load: {filepath}')
-        points = self.load_cartesian_waypoints(filepath) if is_cartesian else self.load_joint_waypoints(filepath)
-        if not points:
-            self.get_logger().error('No waypoints loaded.')
-            rclpy.shutdown()
-            return
-        self.action_client.wait_for_server()
-        goal_msg = FollowJointTrajectory.Goal()
-        goal_msg.trajectory.joint_names = self.joint_names
-        goal_msg.trajectory.header.stamp = self.get_clock().now().to_msg()
-        goal_msg.trajectory.points = points
-        for name in self.joint_names:
-            goal_msg.goal_tolerance.append(JointTolerance(name=name, position=1.0, velocity=1.0))
-        self.trajectory_event.clear()
-        self.is_recording = True
-        future = self.action_client.send_goal_async(goal_msg)
-        future.add_done_callback(self.goal_response_callback)
-        max_time = max(
-            pt.time_from_start.sec + pt.time_from_start.nanosec * 1e-9 for pt in points) + 10.0
-        self.trajectory_event.wait(timeout=max_time)
-        self.is_recording = False
-        self.return_to_candle()
-        self.export_data(out_name)
-
-    def run_interactive_cli(self):
-        """ The main interactive loop run in the background thread. """
-        print("\n" + "="*50)
-        print("   UR5 DIGITAL TWIN - INTERACTIVE HIL CONTROL")
-        print("="*50)
-
-        # 1. Select Control Mode
-        print("\n[1] Joint Space Waypoints")
-        print("[2] Cartesian Space Waypoints (Requires IK)")
-        mode = input("Select Mode (1 or 2): ").strip()
-        is_cartesian = (mode == '2')
-
-        # 2. Select Input File
-        default_file = 'default_cartesian.csv' if is_cartesian else 'default_joint.csv'
-        filename = input(f"\nEnter waypoint file name in 'waypoints/' directory \n[Press Enter for {default_file}]: ").strip()
-        if not filename:
-            filename = default_file
-
-        filepath = os.path.join(self.waypoints_dir, filename)
-        if not os.path.exists(filepath):
-            self.get_logger().error(f"File not found: {filepath}")
-            rclpy.shutdown()
-            return
-
-        # 3. Load & Process Waypoints
-        self.get_logger().info(f"Loading waypoints from: {filename}")
-        if is_cartesian:
-            points = self.load_cartesian_waypoints(filepath)
-        else:
-            points = self.load_joint_waypoints(filepath)
-
-        if not points:
-            self.get_logger().error("No valid waypoints loaded. Aborting.")
-            rclpy.shutdown()
-            return
-
-        # 4. Connect to Action Server
-        self.get_logger().info('Connecting to Gazebo Trajectory Controller...')
-        self.action_client.wait_for_server()
-        
-        goal_msg = FollowJointTrajectory.Goal()
-        goal_msg.trajectory.joint_names = self.joint_names
-        goal_msg.trajectory.header.stamp = self.get_clock().now().to_msg()
-        goal_msg.trajectory.points = points
-        
-        # Inject relaxed tolerances to prevent Action Server aborts from micro-sag
-        for name in self.joint_names:
-            tol = JointTolerance(name=name, position=1.0, velocity=1.0)
-            goal_msg.goal_tolerance.append(tol)
-        
-        # 5. Execute & Record
-        input("\n[READY] Press Enter to execute trajectory and begin telemetry recording...")
-        self.trajectory_event.clear()
-        self.is_recording = True  # START VACUUMING SENSOR DATA
-        
-        future = self.action_client.send_goal_async(goal_msg)
-        future.add_done_callback(self.goal_response_callback)
-
-        # Hard timeout calculation (longest waypoint time + 10s buffer)
-        max_time = max([
-            pt.time_from_start.sec + (pt.time_from_start.nanosec * 1e-9)
-            for pt in points
-        ]) + 10.0
-        self.get_logger().info(f'Execution started. Timeout set to {max_time}s.')
-        
-        finished = self.trajectory_event.wait(timeout=max_time)
-        self.is_recording = False # STOP RECORDING
-
-        if not finished:
-            self.get_logger().warn('Trajectory Action Server hung (likely due to gravity sag). Forcing completion.')
-        
-        # 6. Save Data
-        print("\n" + "="*50)
-        out_name = input("Execution Complete. Enter export filename (without extension) \n[Press Enter for 'run_log']: ").strip()
-        if not out_name:
-            out_name = "run_log"
-            
-        self.return_to_candle()
-        self.export_data(out_name)
-
-    # PARSERS & SOLVERS
-
-    def load_joint_waypoints(self, filepath):
-        """ Reads direct 7-DOF joint angles from a CSV """
-        points = []
-        with open(filepath, 'r') as f:
-            reader = csv.reader(f)
-            next(reader) # Skip Header
-            for row in reader:
-                if not row: continue
-                if len(row) < 8:
-                    self.get_logger().warn(f"Skipping malformed joint waypoint row: {row}")
-                    continue
-                pt = JointTrajectoryPoint()
-                sec, nanosec = self.parse_time_to_ros_duration(row[0])
-                pt.time_from_start.sec = sec
-                pt.time_from_start.nanosec = nanosec
-                pt.positions = [float(x) for x in row[1:8]]
-                pt.velocities = [0.0] * 7 # Stop at each waypoint
-                points.append(pt)
-        return points
-
-    def load_cartesian_waypoints(self, filepath):
-        """ Reads XYZ RPY from CSV and calls MoveIt IK service to find Joint Angles """
-        self.ik_client.wait_for_service()
-        points = []
-        
-        with open(filepath, 'r') as f:
-            reader = csv.reader(f)
-            next(reader) # Skip Header
-            for row in reader:
-                if not row: continue
-                if len(row) < 7:
-                    self.get_logger().warn(f"Skipping malformed cartesian waypoint row: {row}")
-                    continue
-                
-                time_sec = float(row[0])
-                x, y, z = float(row[1]), float(row[2]), float(row[3])
-                roll, pitch, yaw = float(row[4]), float(row[5]), float(row[6])
-                
-                # Math: Convert Euler to Quaternion
-                qx = math.sin(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) - math.cos(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)
-                qy = math.cos(roll/2) * math.sin(pitch/2) * math.cos(yaw/2) + math.sin(roll/2) * math.cos(pitch/2) * math.sin(yaw/2)
-                qz = math.cos(roll/2) * math.cos(pitch/2) * math.sin(yaw/2) - math.sin(roll/2) * math.sin(pitch/2) * math.cos(yaw/2)
-                qw = math.cos(roll/2) * math.cos(pitch/2) * math.cos(yaw/2) + math.sin(roll/2) * math.sin(pitch/2) * math.sin(yaw/2)
-
-                # Normalize to protect IK from numeric drift when converting from Euler angles.
-                q_norm = math.sqrt((qx * qx) + (qy * qy) + (qz * qz) + (qw * qw))
-                if q_norm <= 1e-9:
-                    self.get_logger().error(f"Invalid orientation for waypoint at {time_sec}s. Skipping.")
-                    continue
-                qx, qy, qz, qw = qx / q_norm, qy / q_norm, qz / q_norm, qw / q_norm
-
-                # Query the IK Service
-                joint_positions = self.solve_ik(x, y, z, qx, qy, qz, qw)
-                if joint_positions:
-                    pt = JointTrajectoryPoint()
-                    sec, nanosec = self.parse_time_to_ros_duration(time_sec)
-                    pt.time_from_start.sec = sec
-                    pt.time_from_start.nanosec = nanosec
-                    pt.positions = joint_positions
-                    pt.velocities = [0.0] * 7
-                    points.append(pt)
-                else:
-                    self.get_logger().error(f"IK failed for waypoint at {time_sec}s. Skipping.")
-        return points
-
-    def solve_ik(self, x, y, z, qx, qy, qz, qw):
-        """ Thread-safe helper to call the ROS 2 compute_ik service """
-        req = GetPositionIK.Request()
-        req.ik_request.group_name = "ur_manipulator"
-        req.ik_request.pose_stamped.header.frame_id = "world"
-        req.ik_request.pose_stamped.pose.position.x = x
-        req.ik_request.pose_stamped.pose.position.y = y
-        req.ik_request.pose_stamped.pose.position.z = z
-        req.ik_request.pose_stamped.pose.orientation.x = qx
-        req.ik_request.pose_stamped.pose.orientation.y = qy
-        req.ik_request.pose_stamped.pose.orientation.z = qz
-        req.ik_request.pose_stamped.pose.orientation.w = qw
-        req.ik_request.timeout.sec = 1
-
-        self.ik_event.clear()
-        
-        def ik_callback(future):
-            self.ik_result_msg = future.result()
-            self.ik_event.set()
-            
-        future = self.ik_client.call_async(req)
-        future.add_done_callback(ik_callback)
-        if not self.ik_event.wait(timeout=2.0):
-            self.get_logger().error("Timed out waiting for IK response.")
-            return None
-
-        if self.ik_result_msg and self.ik_result_msg.error_code.val == 1: # SUCCESS
-            # Remap by joint name — never trust positional order of solution.joint_state
-            sol = self.ik_result_msg.solution.joint_state
-            name_to_pos = dict(zip(sol.name, sol.position))
-            try:
-                return [float(name_to_pos[n]) for n in self.joint_names]
-            except KeyError as exc:
-                self.get_logger().error(f"IK solution missing joint {exc}. Names={list(sol.name)}")
-                return None
-        return None
-
-    # CORE CALLBACKS & EXPORT
-
-    def sensor_callback(self, msg):
-        if not self.is_recording: return
-        current_time = msg.header.stamp.sec + (msg.header.stamp.nanosec * 1e-9)
-        row = [current_time]
-        
-        for name in self.joint_names:
-            if name in msg.name:
-                idx = msg.name.index(name)
-                row.extend([msg.position[idx], msg.velocity[idx]])
-                row.append(msg.effort[idx] if len(msg.effort) > idx else 0.0)
+    def main(self) -> None:
+        try:
+            a = self.args
+            if a.scheme is None and not (a.csv or a.mode or a.experiment):
+                self.result = self.menu()
+            elif (a.scheme or ('torque' if a.experiment else 'position')) == 'torque':
+                self.result = self.torque_stages(a.experiment, a.trial, a.seed, a.force)
             else:
-                row.extend([0.0, 0.0, 0.0])
-        self.telemetry_data.append(row)
+                self.result = self.position_stages(PositionSpec(a.csv, MODES[a.mode or ''], a.out, a.force))
+        except (InputError, PlatformError) as e:
+            self.result = RunResult.fail(e.code, str(e))
+        except EOFError:
+            self.result = RunResult.fail(EXIT_INPUT, 'no input on stdin; pass --csv or --experiment')
 
-    def goal_response_callback(self, future):
-        goal_handle = future.result()
-        if not goal_handle.accepted:
-            self.get_logger().error('Gazebo REJECTED the trajectory.')
-            self.is_recording = False
-            return
-        self._get_result_future = goal_handle.get_result_async()
-        self._get_result_future.add_done_callback(self.execution_finished_callback)
+    def menu(self) -> RunResult:
+        print('UR5 digital twin\n  [1] position (Brain A, waypoint CSV)\n  [2] torque (Brain B, experiment YAML)')
+        scheme = self.prompt('Scheme [1]: ') or '1'
+        if scheme == '2':
+            exps = sorted(glob.glob(os.path.join(resolve_file('ur5_controller', 'config/experiments'), '*.yaml')))
+            print('Experiments: ' + ', '.join(os.path.basename(e) for e in exps))
+            exp = self.prompt('Experiment file: ')
+            trial = self.prompt('Trial id (Enter for all): ') or None
+            return self.torque_stages(exp, trial, None, False)
+        mode = MODES.get(self.prompt('Mode [1] joint  [2] cartesian (Enter for joint): ') or '1')
+        if mode is None:
+            raise InputError('mode must be 1 or 2')
+        default = 'default_cartesian.csv' if mode == 'cartesian' else 'default_joint.csv'
+        files = sorted({os.path.basename(p) for d in (shipped_waypoints_dir(),
+                        os.path.join(data_dir(), 'waypoints')) for p in glob.glob(os.path.join(d, '*.csv'))})
+        print('Waypoint files: ' + ', '.join(files))
+        csv = self.prompt(f'Waypoint file [{default}]: ') or default
+        out = self.prompt('Telemetry name (Enter for automatic): ')
+        spec = PositionSpec(csv, mode, out, False)
+        loaded = self.position.load(spec)
+        self.prompt('Press Enter to run pre-flight and execute ')
+        return self.position_stages(spec, loaded)
 
-    def execution_finished_callback(self, future):
-        self.get_logger().info('Action Server reported execution complete.')
-        self.trajectory_event.set()
+    def position_stages(self, spec: PositionSpec, loaded=None) -> RunResult:
+        self.active = self.position
+        loaded = loaded or self.position.load(spec)
+        pre = self.pre.run()
+        self.node.get_logger().info(f'pre-flight: {pre.reason}')
+        if not pre.ok:
+            return pre
+        res = self.position.run(loaded)
+        if res.export:
+            path, rec, meta = res.export
+            write_h5(path, rec, meta)
+            res.outputs.append(path)
+            self.node.get_logger().info(f'telemetry: {path}')
+        if res.code == EXIT_INTERRUPTED:
+            return res
+        reset = self.pre.run()
+        self.node.get_logger().info(f'reset: {reset.reason}')
+        if res.ok and not reset.ok:
+            return RunResult.fail(reset.code, f'Candle reset failed: {reset.reason}', res.outputs)
+        return res
 
-    def return_to_candle(self):
-        """Stage 4 reset: command Candle Pose on active JTC without restarting Gazebo."""
-        self.get_logger().info('Returning to Candle Pose...')
-        if not self.action_client.wait_for_server(timeout_sec=10.0):
-            self.get_logger().error('FollowJointTrajectory server unavailable for Candle reset.')
-            return False
+    def torque_stages(self, experiment, trial, seed, force) -> RunResult:
+        from ur5_controller.torque_control import load_experiment
+        if not experiment:
+            raise InputError('--experiment <file.yaml> is required for --scheme torque')
+        exp = load_experiment(experiment, trial, seed)
+        exp.force = force
+        self.active = self.torque
+        return self.torque.run(exp)
 
-        goal_msg = FollowJointTrajectory.Goal()
-        goal_msg.trajectory.joint_names = self.joint_names
-        # Zero stamp = execute as soon as received (reliable with use_sim_time).
-        goal_msg.trajectory.header.stamp.sec = 0
-        goal_msg.trajectory.header.stamp.nanosec = 0
-        pt = JointTrajectoryPoint()
-        pt.positions = list(self.candle_pose)
-        pt.velocities = [0.0] * 7
-        sec, nanosec = self.parse_time_to_ros_duration(5.0)
-        pt.time_from_start.sec = sec
-        pt.time_from_start.nanosec = nanosec
-        goal_msg.trajectory.points = [pt]
-        for name in self.joint_names:
-            goal_msg.goal_tolerance.append(JointTolerance(name=name, position=0.1, velocity=0.5))
 
-        self.trajectory_event.clear()
-        future = self.action_client.send_goal_async(goal_msg)
-        future.add_done_callback(self.goal_response_callback)
-        finished = self.trajectory_event.wait(timeout=30.0)
-        if not finished:
-            self.get_logger().warn('Candle Pose reset timed out.')
-            return False
-        self.get_logger().info('Candle Pose reset complete.')
-        return True
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description='UR5 operator entry point', allow_abbrev=False)
+    ap.add_argument('--scheme', choices=['position', 'torque'])
+    ap.add_argument('--mode', default='', choices=['', '1', '2', 'joint', 'cartesian'])
+    ap.add_argument('--csv', default='', help='waypoint CSV: path, or a name in $UR5_DATA_DIR/waypoints or the shipped set')
+    ap.add_argument('--out', default='', help='telemetry name; default <csv>_<timestamp>')
+    ap.add_argument('--experiment', default='', help='experiment YAML for --scheme torque')
+    ap.add_argument('--trial', default=None)
+    ap.add_argument('--seed', type=int, default=None)
+    ap.add_argument('--force', action='store_true', help='overwrite an existing --out file')
+    args, ros_args = ap.parse_known_args(argv)
+    if args.scheme == 'torque' and (args.csv or args.mode):
+        print('--csv/--mode belong to --scheme position', file=sys.stderr)
+        return EXIT_INPUT
 
-    def export_data(self, filename_prefix):
-        if len(self.telemetry_data) < 2:
-            self.get_logger().error("Not enough data to export.")
-            rclpy.shutdown()
-            return
-        
-        # Save to the specific 'data' directory
-        data_dir = os.path.join(os.getcwd(), 'data')
-        os.makedirs(data_dir, exist_ok=True)
-        csv_filepath = os.path.join(data_dir, f'{filename_prefix}_filtered.csv')
-        h5_filepath = os.path.join(data_dir, f'{filename_prefix}_filtered.h5')
-
-        # Export CSV (always available)
-        headers = ['timestamp_sec']
-        for name in self.joint_names:
-            headers.extend([f'{name}_pos', f'{name}_vel', f'{name}_torque'])
-
-        filtered_data = None
-        if np is None:
-            self.get_logger().warn("numpy is unavailable. Exporting unfiltered telemetry only.")
-        else:
-            data_matrix = np.array(self.telemetry_data)
-            filtered_data = np.copy(data_matrix)
-
-            # Butterworth filtering is optional and only applied when scipy is present.
-            if butter is not None and filtfilt is not None and len(self.telemetry_data) >= 10:
-                b, a = butter(N=3, Wn=4.0 / 50.0, btype='low')
-                for i in range(len(self.joint_names)):
-                    vel_col = (i * 3) + 2
-                    eff_col = (i * 3) + 3
-
-                    filtered_data[:, vel_col] = filtfilt(b, a, data_matrix[:, vel_col])
-
-                    eff_raw = data_matrix[:, eff_col]
-                    if not np.isnan(eff_raw).all():
-                        eff_raw = np.nan_to_num(eff_raw)
-                        filtered_data[:, eff_col] = filtfilt(b, a, eff_raw)
-            elif butter is None or filtfilt is None:
-                self.get_logger().warn("scipy is unavailable. Exporting unfiltered telemetry.")
-            
-        with open(csv_filepath, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(headers)
-            if filtered_data is None:
-                writer.writerows(self.telemetry_data)
-            else:
-                writer.writerows(filtered_data)
-
-        # Export HDF5 only when dependencies are available.
-        if h5py is not None and filtered_data is not None:
-            with h5py.File(h5_filepath, 'w') as hf:
-                hf.create_dataset('timestamp_sec', data=filtered_data[:, 0])
-                for i, name in enumerate(self.joint_names):
-                    hf.create_dataset(f'position/{name}', data=filtered_data[:, (i*3)+1])
-                    hf.create_dataset(f'velocity/{name}', data=filtered_data[:, (i*3)+2])
-                    hf.create_dataset(f'effort/{name}', data=filtered_data[:, (i*3)+3])
-            print(f"\n[SUCCESS] Files saved to:\n- {csv_filepath}\n- {h5_filepath}")
-        else:
-            self.get_logger().warn("h5py is unavailable. Skipping HDF5 export.")
-            print(f"\n[SUCCESS] File saved to:\n- {csv_filepath}")
-        rclpy.shutdown()
-
-def main(args=None):
-    import argparse
-    parser = argparse.ArgumentParser(description='UR5 interactive / batch HIL controller')
-    parser.add_argument('--csv', default='', help='Waypoint CSV path or basename in waypoints/')
-    parser.add_argument('--mode', default='', choices=['', '1', '2', 'joint', 'cartesian'],
-                        help='1/joint or 2/cartesian; empty prompts interactively')
-    parser.add_argument('--out', default='run_log', help='Telemetry export basename')
-    known, ros_args = parser.parse_known_args(args=args)
-
-    rclpy.init(args=ros_args)
-    mode = known.mode
-    if mode == 'joint':
-        mode = '1'
-    elif mode == 'cartesian':
-        mode = '2'
-    controller = InteractiveHILController(csv_path=known.csv, mode=mode, out_name=known.out)
+    rclpy.init(args=ros_args, signal_handler_options=SignalHandlerOptions.NO)
+    node = Node('ur5_interactive_control',
+                parameter_overrides=[Parameter('use_sim_time', Parameter.Type.BOOL, True)])
     try:
-        rclpy.spin(controller)
-    except KeyboardInterrupt:
-        pass
+        app = App(node, args)
+    except (FileNotFoundError, KeyError, ValueError) as e:
+        print(f'cannot load platform model: {e}', file=sys.stderr)
+        node.destroy_node()
+        rclpy.try_shutdown()
+        return EXIT_PLATFORM
+    executor = SingleThreadedExecutor()
+    executor.add_node(node)
+    interrupted = threading.Event()
+
+    def on_sigint(signum, frame):
+        if interrupted.is_set() or app.in_prompt:
+            os._exit(EXIT_INTERRUPTED)
+        interrupted.set()
+        app.abort()
+
+    signal.signal(signal.SIGINT, on_sigint)
+    signal.signal(signal.SIGTERM, on_sigint)
+    worker = threading.Thread(target=app.main, name='ur5_worker')
+    worker.start()
+    while worker.is_alive():
+        executor.spin_once(timeout_sec=0.05)
+    executor.shutdown()
+    node.destroy_node()
+    rclpy.try_shutdown()
+    res = app.result
+    if interrupted.is_set() and res.ok:
+        res = RunResult.fail(EXIT_INTERRUPTED, 'interrupted')
+    for path in res.outputs:
+        print(path)
+    stream = sys.stdout if res.ok else sys.stderr
+    print(('OK: ' if res.ok else 'FAIL: ') + res.reason, file=stream)
+    return EXIT_OK if res.ok else res.code
+
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

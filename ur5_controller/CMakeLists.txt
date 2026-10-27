@@ -49,6 +49,8 @@ ament_python_install_package(${PROJECT_NAME})
 install(PROGRAMS
   scripts/interactive_control.py
   scripts/planner_cli.py
+  scripts/preflight.py
+  scripts/switch_brain.py
   scripts/validate_h5.py
   DESTINATION lib/${PROJECT_NAME}
 )
