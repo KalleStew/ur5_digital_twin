@@ -81,14 +81,15 @@ def generate_launch_description():
         ],
     )
 
-    # Bridge the Gazebo Harmonic clock to ROS 2 native /clock topic
+    # Bridge the Gazebo clock, and the physics-stamped joint states used by Brain B and telemetry.
     clock_bridge = TimerAction(
         period=1.1,
         actions=[
             Node(
                 package='ros_gz_bridge',
                 executable='parameter_bridge',
-                arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock'],
+                arguments=['/clock@rosgraph_msgs/msg/Clock[gz.msgs.Clock',
+                           '/ur5/gz/joint_states@sensor_msgs/msg/JointState[gz.msgs.Model'],
                 output='screen',
                 name='clock_bridge'
             )
