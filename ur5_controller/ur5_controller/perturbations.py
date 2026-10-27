@@ -21,9 +21,16 @@ KINDS = {
     'tip_force': 'plant',
 }
 
+# joint_friction is fed back from measured qd once per loop period T and held for T.
+# Per perturbed joint: b_p T / m_eff <= FRICTION_VISCOUS_STEP_MAX and
+# epsilon >= FRICTION_EPSILON_FACTOR * Fc_p T / m_eff, with m_eff the worst-case (smallest) M_jj.
+FRICTION_VISCOUS_STEP_MAX = 0.5
+FRICTION_EPSILON_FACTOR = 2.0
+
 
 class Perturbation:
-    def __init__(self, kind: str, level, seed: int, cfg: dict | None = None, dof: int = 7) -> None:
+    def __init__(self, kind: str, level, seed: int, cfg: dict | None = None, dof: int = 7,
+                 options: dict | None = None) -> None:
         if kind not in KINDS:
             raise InputError(f'unknown perturbation {kind!r}; one of {sorted(KINDS)}')
         self.kind = kind
@@ -34,10 +41,22 @@ class Perturbation:
         self.cfg = cfg or {}
         self._wrench_on = False
         if kind == 'joint_friction':
-            lv = level if isinstance(level, dict) else {}
-            self.b = self._vec(lv.get('viscous', 0.0))
-            self.fc = self._vec(lv.get('coulomb', 0.0))
-            self.eps = float(lv.get('epsilon', 0.01))
+            opts = options or {}
+            try:
+                self.fraction = float(level)
+            except (TypeError, ValueError):
+                raise InputError('joint_friction level is a fraction of the URDF b and Fc, e.g. 0.25')
+            if self.fraction < 0:
+                raise InputError('joint_friction level must be >= 0')
+            self.joints = [str(j) for j in opts.get('joints') or []]
+            if not self.joints:
+                raise InputError('joint_friction needs joints: [<joint names>]')
+            self.eps = float(opts.get('epsilon', 0.0))
+            if self.eps <= 0:
+                raise InputError('joint_friction needs epsilon > 0 (rad/s)')
+            self.b = np.zeros(dof)
+            self.fc = np.zeros(dof)
+            self.bound: dict = {}
         elif kind == 'gain_loss':
             self.alpha = self._vec(level)
             if np.any(self.alpha < 0) or np.any(self.alpha > 1):
@@ -60,8 +79,44 @@ class Perturbation:
             raise InputError(f'{self.kind} level needs a scalar or {self.dof} values')
         return a
 
+    def bind(self, joints, damping, friction, m_eff, period: float) -> None:
+        """Scale the URDF b and Fc of the perturbed joints; refuse a level the loop cannot hold stably."""
+        if self.kind != 'joint_friction':
+            return
+        joints = list(joints)
+        unknown = [j for j in self.joints if j not in joints]
+        if unknown:
+            raise InputError(f'joint_friction: unknown joints {unknown}; model joints {joints}')
+        mask = np.array([j in self.joints for j in joints])
+        m_eff = np.asarray(m_eff, dtype=float)
+        self.b = np.where(mask, self.fraction * np.asarray(damping, dtype=float), 0.0)
+        self.fc = np.where(mask, self.fraction * np.asarray(friction, dtype=float), 0.0)
+        step = self.b * period / m_eff
+        eps_min = FRICTION_EPSILON_FACTOR * self.fc * period / m_eff
+        for i, j in enumerate(joints):
+            if step[i] > FRICTION_VISCOUS_STEP_MAX:
+                raise InputError(f'joint_friction level {self.fraction}: {j} b_p T/m_eff = {step[i]:.3f} '
+                                 f'> {FRICTION_VISCOUS_STEP_MAX} (unstable at {1 / period:.0f} Hz)')
+            if self.eps < eps_min[i]:
+                raise InputError(f'joint_friction level {self.fraction}: epsilon {self.eps} < '
+                                 f'{eps_min[i]:.3f} rad/s needed on {j}')
+        self.bound = {
+            'perturbed_joints': [j for j in joints if j in self.joints],
+            'friction_fraction': self.fraction,
+            'friction_b_p': self.b.tolist(),
+            'friction_fc_p': self.fc.tolist(),
+            'friction_epsilon': self.eps,
+            'friction_velocity_source': 'measured',
+            'friction_m_eff_min': m_eff.tolist(),
+            'friction_viscous_step': step.tolist(),
+            'friction_epsilon_min': eps_min.tolist(),
+        }
+
     def describe(self) -> dict:
         return {'type': self.kind, 'level': self.level, 'side': self.side}
+
+    def metadata(self) -> dict:
+        return dict(self.bound) if self.kind == 'joint_friction' else {}
 
     def measured_velocity(self, qd) -> np.ndarray:
         qd = np.asarray(qd, dtype=float)
@@ -74,6 +129,8 @@ class Perturbation:
         if self.kind == 'gain_loss':
             return self.alpha * tau
         if self.kind == 'joint_friction':
+            if not self.bound:
+                raise RuntimeError('joint_friction used before bind()')
             qd = np.asarray(qd, dtype=float)
             return tau - self.b * qd - self.fc * np.tanh(qd / self.eps)
         return tau

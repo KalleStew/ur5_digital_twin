@@ -41,6 +41,7 @@ class Trial:
     level: object
     level_index: int
     seed: int
+    options: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -77,11 +78,12 @@ def load_experiment(path: str, trial: str | None = None, seed: int | None = None
     seeds = [int(seed)] if seed is not None else [int(s) for s in raw['seeds']]
     trials = []
     for traj, ctrl, pert, s in itertools.product(raw['trajectories'], raw['controllers'], perts, seeds):
+        options = {k: v for k, v in pert.items() if k not in ('type', 'levels')}
         for li, level in enumerate(pert.get('levels', [0])):
             stem = os.path.splitext(os.path.basename(traj))[0]
             tid = f'{stem}-{ctrl["plugin"]}-{pert["type"]}{li}-s{s}'
             trials.append(Trial(tid, traj, ctrl['plugin'], ctrl.get('gains', {}), pert['type'],
-                                level, li, s))
+                                level, li, s, options))
     if trial is not None:
         sel = [t for i, t in enumerate(trials) if t.trial_id == trial or str(i) == str(trial)]
         if not sel:
@@ -93,6 +95,17 @@ def load_experiment(path: str, trial: str | None = None, seed: int | None = None
     eps = raw.get('coulomb_epsilon', None if 'model_terms' in raw else DEFAULT_COULOMB_EPSILON)
     return Experiment(name, path, trials, float(raw.get('hold_sec', 1.0)),
                       float(raw.get('post_hold_sec', 1.0)), tuple(terms), eps, raw=raw)
+
+
+def worst_case_inertia(dyn: Dynamics, model: Model, exp: Experiment, period: float) -> np.ndarray:
+    """Smallest M_jj per joint over Candle and every trajectory of the experiment (not only --trial)."""
+    m = np.diag(dyn.M(model.candle)).copy()
+    for traj in dict.fromkeys(exp.raw.get('trajectories') or [t.trajectory for t in exp.trials]):
+        wps = load_joint_csv(resolve_waypoints(traj), model, start=model.candle)
+        ref = MinJerkReference(model.candle, wps.times, wps.values, hold_sec=exp.hold_sec)
+        for t in np.arange(0.0, ref.duration + period, period):
+            m = np.minimum(m, np.diag(dyn.M(np.asarray(ref(t)[0]))))
+    return m
 
 
 class LoopAbort(Exception):
@@ -255,7 +268,9 @@ class TorqueScheme(Scheme):
                 data_dir(), 'telemetry', f'{exp.name}_{stamp}'))
             self._resolve_command_order()
             nominal = NominalModel(self.dyn, exp.model_terms, exp.coulomb_epsilon)
-            prepared = [self._prepare(exp, t, nominal) for t in exp.trials]
+            m_eff = (self._worst_case_inertia(exp)
+                     if any(t.perturbation == 'joint_friction' for t in exp.trials) else None)
+            prepared = [self._prepare(exp, t, nominal, m_eff) for t in exp.trials]
         except (InputError, PlatformError) as e:
             return RunResult.fail(e.code, str(e))
         outputs, rows = [], []
@@ -270,13 +285,19 @@ class TorqueScheme(Scheme):
         self._write_summary(exp, rows)
         return RunResult.success(f'{len(rows)} trials -> {exp.out_dir}', outputs)
 
-    def _prepare(self, exp: Experiment, trial: Trial, nominal: NominalModel):
+    def _worst_case_inertia(self, exp: Experiment) -> np.ndarray:
+        return worst_case_inertia(self.dyn, self.model, exp, 1.0 / self.cfg['brain_b_loop']['rate_hz'])
+
+    def _prepare(self, exp: Experiment, trial: Trial, nominal: NominalModel, m_eff=None):
         path = resolve_waypoints(trial.trajectory)
         wps = load_joint_csv(path, self.model, start=self.model.candle)
         ctrl = load_controller(trial.plugin, self.dyn, trial.gains, self.model.joints, nominal,
                                gain_pose=self.model.candle)
         pert = Perturbation(trial.perturbation, trial.level, trial.seed, self.cfg['model'],
-                            len(self.model.joints))
+                            len(self.model.joints), trial.options)
+        if m_eff is not None:
+            pert.bind(self.model.joints, self.dyn.damping, self.dyn.friction, m_eff,
+                      1.0 / self.cfg['brain_b_loop']['rate_hz'])
         return path, wps, ctrl, pert
 
     def _write_summary(self, exp: Experiment, rows) -> None:
@@ -334,7 +355,8 @@ class TorqueScheme(Scheme):
             'gains': trial.gains, 'seed': trial.seed,
             'perturbation': {'type': trial.perturbation, 'level': trial.level,
                              'level_index': trial.level_index},
-            'perturbation_side': pert.side, 'trajectory_file': os.path.abspath(path),
+            'perturbation_side': pert.side, **pert.metadata(),
+            'trajectory_file': os.path.abspath(path),
             'trajectory_sha256': sha256(path), 'rtf': rtf,
             'expected_rate_hz': self.cfg['brain_b_loop']['rate_hz'],
             'hold_sec': exp.hold_sec, 'post_hold_sec': exp.post_hold_sec,

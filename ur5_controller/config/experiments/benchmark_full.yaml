@@ -30,12 +30,14 @@ controllers:
 perturbations:
   - type: none
     levels: [0]
-  # Extra viscous (N m s/rad) and Coulomb (N m) friction on the torque reaching each joint.
+  # Extra friction on the torque reaching the proximal joints, from measured qd:
+  # level x URDF (b qd + Fc tanh(qd / epsilon)). Wrists are excluded: at 100 Hz even small extra
+  # viscous feedback is unstable on them. Levels and epsilon are checked at run start against
+  # b_p T / m_eff <= 0.5 and epsilon >= 2 Fc_p T / m_eff (worst-case M_jj over both trajectories).
   - type: joint_friction
-    levels:
-      - {viscous: 1.0, coulomb: 0.5}
-      - {viscous: 3.0, coulomb: 1.5}
-      - {viscous: 6.0, coulomb: 3.0}
+    joints: [shoulder_pan_joint1, shoulder_pan_joint, shoulder_lift_joint, elbow_joint]
+    epsilon: 0.35
+    levels: [0.0, 0.25, 0.5]
   # Fraction of the commanded torque that reaches the joints.
   - type: gain_loss
     levels: [0.9, 0.8, 0.7]
