@@ -1,0 +1,51 @@
+# Full torque benchmark: 4 laws x 6 perturbation settings (none + 5 types x 3 levels) x 2 trajectories x 5 seeds.
+# Trial id: <trajectory>-<plugin>-<perturbation><level index>-s<seed>; select one with --trial.
+# learned_id needs $UR5_DATA_DIR/models/learned_id.npz (see docs/experiments.md); remove it to run without.
+name: benchmark_full
+trajectories: [bench_reach.csv, bench_sweep.csv]
+# Joint terms pd_id_ff and computed_torque add to M, C, g, with values from the URDF <dynamics>:
+# viscous b qd_ref and Coulomb Fc tanh(qd_ref / coulomb_epsilon). pd_gravity uses g(q) only.
+model_terms: [rigid_body, viscous, coulomb]
+coulomb_epsilon: 0.05
+controllers:
+  - plugin: pd_gravity
+    gains:
+      kp: [300, 300, 600, 300, 50, 30, 10]
+      kd: [10, 10, 40, 10, 0.5, 0.3, 0.1]
+  - plugin: pd_id_ff
+    gains:
+      kp: [300, 300, 600, 300, 50, 30, 10]
+      kd: [10, 10, 40, 10, 0.5, 0.3, 0.1]
+  - plugin: computed_torque
+    gains:
+      kp: [100, 100, 100, 100, 100, 100, 100]
+      kd: [20, 20, 20, 20, 20, 20, 20]
+  - plugin: learned_id
+    gains:
+      kp: [300, 300, 600, 300, 50, 30, 10]
+      kd: [10, 10, 40, 10, 0.5, 0.3, 0.1]
+      model: learned_id.npz
+perturbations:
+  - type: none
+    levels: [0]
+  # Extra viscous (N m s/rad) and Coulomb (N m) friction on the torque reaching each joint.
+  - type: joint_friction
+    levels:
+      - {viscous: 1.0, coulomb: 0.5}
+      - {viscous: 3.0, coulomb: 1.5}
+      - {viscous: 6.0, coulomb: 3.0}
+  # Fraction of the commanded torque that reaches the joints.
+  - type: gain_loss
+    levels: [0.9, 0.8, 0.7]
+  # Gaussian noise (rad/s, 1 sigma) on the velocity the control law sees.
+  - type: velocity_noise
+    levels: [0.005, 0.02, 0.05]
+  # Point mass (kg) at the tool link, as a constant downward force.
+  - type: tip_payload
+    levels: [0.5, 1.0, 2.0]
+  # Constant force (N) at the tool link, world frame.
+  - type: tip_force
+    levels: [[5, 0, 0], [10, 0, 0], [20, 0, 0]]
+seeds: [0, 1, 2, 3, 4]
+hold_sec: 1.0
+post_hold_sec: 1.0
