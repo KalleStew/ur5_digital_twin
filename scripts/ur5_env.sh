@@ -1,6 +1,6 @@
 # shellcheck shell=bash
-# UR5 digital twin shell functions. Source from bash, or call through scripts/ur5.
-#   source ~/ros2_ws/src/ur5_digital_twin/scripts/ur5_env.sh
+# UR5 digital twin shell functions. Load into bash with `source <repo>/scripts/ur5_env.sh`,
+# or call them through scripts/ur5.
 
 if [[ -z "${BASH_VERSION:-}" ]]; then
   echo "ERROR: ur5_env.sh must be sourced from bash; or run scripts/ur5 help" >&2
@@ -214,10 +214,33 @@ ur5brain() {
   ros2 run ur5_controller switch_brain.py "$@"
 }
 
+# Run planner_cli.py with "$@", starting multi_waypoint_planner in the background unless one is
+# already running, and stopping it afterwards if this call started it.
+_ur5_with_planner() {
+  local planner_pid="" rc=0
+  if [[ -z "$(_ur5_pids 'multi_waypoint_planner')" ]]; then
+    echo "+ ros2 launch ur5_controller planner.launch.py &   # log /tmp/ur5_planner.log"
+    setsid ros2 launch ur5_controller planner.launch.py > /tmp/ur5_planner.log 2>&1 < /dev/null &
+    planner_pid=$!
+  fi
+  echo "+ ros2 run ur5_controller planner_cli.py $*"
+  ros2 run ur5_controller planner_cli.py "$@" || rc=$?
+  if [[ -n "${planner_pid}" ]]; then
+    kill -INT -- "-${planner_pid}" 2>/dev/null || true
+    wait "${planner_pid}" 2>/dev/null || true
+  fi
+  return "${rc}"
+}
+
 ur5planner() {
   ur5env || return
-  echo "+ ros2 launch ur5_controller planner.launch.py $*"
-  ros2 launch ur5_controller planner.launch.py "$@"
+  if [[ ! -t 0 ]]; then
+    _ur5_die 2 "ur5 planner needs a terminal; headless: ur5 plan <name> --points <file.points.yaml>"; return
+  fi
+  if [[ -z "$(_ur5_pids 'gz sim')" ]]; then
+    _ur5_die 3 "no simulation running; start one with: ur5 sim (or ur5 simgui for RViz Publish Point)"; return
+  fi
+  _ur5_with_planner "$@"
 }
 
 ur5plan() {
@@ -235,22 +258,12 @@ ur5plan() {
   if [[ -z "${name}" ]]; then
     _ur5_die 2 "usage: ur5 plan <name> [--points <file.points.yaml>] [--force]"; return
   fi
-  local planner_pid=""
-  if ! ros2 node list 2>/dev/null | grep -qx "/multi_waypoint_planner"; then
-    echo "+ ros2 launch ur5_controller planner.launch.py &   # log /tmp/ur5_planner.log"
-    setsid ros2 launch ur5_controller planner.launch.py > /tmp/ur5_planner.log 2>&1 < /dev/null &
-    planner_pid=$!
+  if [[ -z "$(_ur5_pids 'gz sim')" ]]; then
+    _ur5_die 3 "no simulation running; start one with: ur5 sim"; return
   fi
   local args=(--export "${name}" "${force[@]}")
   [[ -n "${points}" ]] && args+=(--points "${points}")
-  echo "+ ros2 run ur5_controller planner_cli.py ${args[*]}"
-  local rc=0
-  ros2 run ur5_controller planner_cli.py "${args[@]}" || rc=$?
-  if [[ -n "${planner_pid}" ]]; then
-    kill -INT -- "-${planner_pid}" 2>/dev/null || true
-    wait "${planner_pid}" 2>/dev/null || true
-  fi
-  return "${rc}"
+  _ur5_with_planner "${args[@]}"
 }
 
 ur5ctl() {

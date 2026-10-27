@@ -38,7 +38,7 @@ Brain A (position)
   ur5 demo                       run demo_15s.csv
   ur5 plan <name> [--points file.points.yaml] [--force]
                                  plan through task-space points, export $UR5_DATA_DIR/waypoints/<name>.csv
-  ur5 planner                    multi_waypoint_planner in the foreground (RViz Publish Point)
+  ur5 planner [--export name]    interactive planner menu in a terminal (RViz Publish Point in simgui)
   ur5 brain a|b [--sec N]        switch control authority; b holds the pose with PD + gravity
 
 Brain B (torque)
