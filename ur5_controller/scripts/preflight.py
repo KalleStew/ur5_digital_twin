@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Candle pre-flight: Brain A active, move to candle_pose, verify arrival and settle. Exit 0 on success."""
+"""Candle pre-flight: Brain A active, move to candle_pose, verify arrival and settle. Exit 0 on success.
+
+  preflight.py [--wait-for-bringup SEC]   wait for the spawner chain first (used by bringup.launch.py)
+"""
+import argparse
 import signal
 import sys
 import threading
@@ -17,22 +21,29 @@ from ur5_controller.scheme import EXIT_INTERRUPTED, EXIT_PLATFORM, PlatformError
 
 
 def main() -> int:
-    rclpy.init(args=sys.argv[1:], signal_handler_options=SignalHandlerOptions.NO)
+    ap = argparse.ArgumentParser(description='Candle pre-flight')
+    ap.add_argument('--wait-for-bringup', type=float, default=0.0, metavar='SEC')
+    args, ros_args = ap.parse_known_args()
+    rclpy.init(args=ros_args, signal_handler_options=SignalHandlerOptions.NO)
     node = Node('ur5_preflight',
                 parameter_overrides=[Parameter('use_sim_time', Parameter.Type.BOOL, True)])
     cfg = load_platform()
     model = load_model(cfg)
     state = state_cache(node, model, cfg)
-    pre = Preflight(node, cfg, model, state, Brains(node, cfg))
+    brains = Brains(node, cfg)
+    pre = Preflight(node, cfg, model, state, brains)
     out = {'res': RunResult.fail(EXIT_INTERRUPTED, 'interrupted')}
+    stop = threading.Event()
 
     def work():
         try:
+            if args.wait_for_bringup > 0:
+                brains.wait_ready(args.wait_for_bringup, abort=stop)
+                if stop.is_set():
+                    return
             out['res'] = pre.run()
         except PlatformError as e:
             out['res'] = RunResult.fail(EXIT_PLATFORM, str(e))
-
-    stop = threading.Event()
 
     def on_sigint(*_):
         stop.set()

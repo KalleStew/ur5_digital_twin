@@ -1,6 +1,8 @@
 """Atomic control-authority handoff between Brain A (JTC) and Brain B (raw effort)."""
 from __future__ import annotations
 
+import time
+
 from controller_manager_msgs.srv import ListControllers, SwitchController
 
 from .robot import call_service
@@ -12,6 +14,7 @@ class Brains:
         cm = cfg['controller_manager']
         self.a = cfg['brain_a']['controller']
         self.b = cfg['brain_b']['controller']
+        self.jsb = cfg['joint_state_broadcaster']
         self.list_cli = node.create_client(ListControllers, f'{cm}/list_controllers')
         self.switch_cli = node.create_client(SwitchController, f'{cm}/switch_controller')
 
@@ -20,6 +23,25 @@ class Brains:
         if res is None:
             raise PlatformError('controller_manager not reachable; is the sim running? (ur5 ctl)')
         return {c.name: c.state for c in res.controller}
+
+    def wait_ready(self, timeout: float, abort=None) -> None:
+        """Block until the broadcaster is active and both brains are loaded and configured (bring-up)."""
+        ok = ('active', 'inactive')
+        # Wall-clock: give-up timeout only; the spawner chain runs on its own schedule.
+        deadline = time.monotonic() + timeout
+        last = 'controller_manager not reachable'
+        while time.monotonic() < deadline and not (abort and abort.is_set()):
+            try:
+                st = self.states(timeout=5.0)
+                if st.get(self.jsb) == 'active' and st.get(self.a) in ok and st.get(self.b) in ok:
+                    return
+                last = f'controllers {st}'
+            except PlatformError as e:
+                last = str(e)
+            time.sleep(0.5)
+        if abort and abort.is_set():
+            return
+        raise PlatformError(f'bring-up not ready after {timeout:.0f}s: {last}')
 
     def active(self) -> str | None:
         """'a', 'b', or None when neither brain holds authority."""
