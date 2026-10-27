@@ -1,5 +1,7 @@
-"""Computed torque: tau = M(q) (qdd_ref + Kp e + Kd de) + C(q, qd) qd + g(q).
+"""Computed torque: tau = M(q) (qdd_ref + Kp e + Kd de) + C(q, qd) qd + g(q) + F(qd_ref).
 
+C(q, qd) qd uses the measured velocity. F is the selected joint terms (model_terms) on the
+reference velocity: viscous b qd_ref, Coulomb Fc tanh(qd_ref / epsilon).
 Gains here are natural-frequency style (1/s^2, 1/s) because M(q) scales them.
 """
 import numpy as np
@@ -13,4 +15,5 @@ class Controller(TorqueController):
     def compute(self, t, q, qd, q_ref, qd_ref, qdd_ref):
         q, qd = np.asarray(q), np.asarray(qd)
         v = np.asarray(qdd_ref) + self.kp * (np.asarray(q_ref) - q) + self.kd * (np.asarray(qd_ref) - qd)
-        return self.dyn.M(q) @ v + self.dyn.c(q, qd) + self.dyn.g(q)
+        return (self.dyn.M(q) @ v + self.dyn.c(q, qd) + self.dyn.g(q)
+                + self.nominal.joint_friction(qd_ref))

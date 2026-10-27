@@ -5,6 +5,7 @@ import importlib
 
 import numpy as np
 
+from ..dynamics import NominalModel
 from ..scheme import InputError
 
 
@@ -13,8 +14,9 @@ class TorqueController:
 
     family = 'model-based'
 
-    def __init__(self, dynamics, gains: dict, joints) -> None:
+    def __init__(self, dynamics, gains: dict, joints, nominal: NominalModel | None = None) -> None:
         self.dyn = dynamics
+        self.nominal = nominal if nominal is not None else NominalModel(dynamics)
         self.joints = tuple(joints)
         self.gains = gains
         self.kp = self._vec('kp')
@@ -29,6 +31,19 @@ class TorqueController:
             raise InputError(f'gains.{key} needs {len(self.joints)} values, got {len(v)}')
         return np.asarray(v)
 
+    def model_description(self) -> str:
+        return f'KDL from URDF: {" + ".join(self.nominal.terms)}'
+
+    def model_metadata(self) -> dict:
+        """Selected model terms with their URDF values, and the terms this law evaluates."""
+        return {**self.nominal.describe(), 'model_terms_used': list(self.nominal.terms),
+                'nominal_model': self.model_description()}
+
+    def _without_terms(self, used: str) -> dict:
+        return {**self.nominal.describe(), 'model_terms_used': [used],
+                'nominal_model': self.model_description(),
+                'viscous_velocity_source': 'none', 'coulomb_velocity_source': 'none'}
+
     def reset(self) -> None:
         """Called before each trial."""
 
@@ -36,7 +51,8 @@ class TorqueController:
         raise NotImplementedError
 
 
-def load_controller(plugin: str, dynamics, gains: dict, joints) -> TorqueController:
+def load_controller(plugin: str, dynamics, gains: dict, joints,
+                    nominal: NominalModel | None = None) -> TorqueController:
     if not plugin.replace('_', '').isalnum():
         raise InputError(f'invalid controller plug-in name {plugin!r}')
     try:
@@ -46,4 +62,4 @@ def load_controller(plugin: str, dynamics, gains: dict, joints) -> TorqueControl
     cls = getattr(mod, 'Controller', None)
     if cls is None or not issubclass(cls, TorqueController):
         raise InputError(f'{plugin}.py must define Controller(TorqueController)')
-    return cls(dynamics, gains or {}, joints)
+    return cls(dynamics, gains or {}, joints, nominal)

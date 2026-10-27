@@ -17,8 +17,8 @@ from .base import TorqueController
 class Controller(TorqueController):
     family = 'learned'
 
-    def __init__(self, dynamics, gains, joints):
-        super().__init__(dynamics, gains, joints)
+    def __init__(self, dynamics, gains, joints, nominal=None):
+        super().__init__(dynamics, gains, joints, nominal)
         path = gains.get('model')
         if not path:
             raise InputError('learned_id: gains.model (path to .npz weights) is required')
@@ -38,6 +38,12 @@ class Controller(TorqueController):
         if self.W[0].shape[0] != 3 * dof or self.W[-1].shape[1] != dof:
             raise InputError(f'learned_id: model must map {3 * dof} inputs to {dof} outputs')
         self.model_path = path
+
+    def model_description(self) -> str:
+        return f'learned feedforward {self.model_path} (model_terms not used)'
+
+    def model_metadata(self) -> dict:
+        return self._without_terms('learned')
 
     def feedforward(self, q_ref, qd_ref, qdd_ref) -> np.ndarray:
         h = (np.concatenate([q_ref, qd_ref, qdd_ref]) - self.x_mean) / self.x_std

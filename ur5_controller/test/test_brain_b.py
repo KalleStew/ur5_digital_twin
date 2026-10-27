@@ -1,8 +1,10 @@
+import os
+
 import numpy as np
 import pytest
 
 from ur5_controller.controllers.base import load_controller
-from ur5_controller.dynamics import Dynamics
+from ur5_controller.dynamics import Dynamics, NominalModel
 from ur5_controller.perturbations import KINDS, Perturbation
 from ur5_controller.robot import load_model, load_platform
 from ur5_controller.scheme import InputError
@@ -27,6 +29,77 @@ def test_model_based_plugins_hold_at_reference(plugin, model, dyn):
     z = np.zeros(7)
     tau = c.compute(0.0, q, z, q, z, z)
     assert np.allclose(tau, dyn.g(q), atol=1e-6)
+
+
+def test_nominal_terms_from_urdf(dyn):
+    n = NominalModel(dyn)
+    assert n.terms == ('rigid_body', 'viscous', 'coulomb') and n.epsilon == 0.05
+    assert np.allclose(n.b, dyn.damping) and np.allclose(n.fc, dyn.friction)
+    qd = np.full(7, 0.05)
+    assert np.allclose(n.joint_friction(qd), dyn.damping * 0.05 + dyn.friction * np.tanh(1.0))
+    vis = NominalModel(dyn, ['rigid_body', 'viscous'], None)
+    assert vis.epsilon is None and np.allclose(vis.joint_friction(qd), dyn.damping * 0.05)
+    assert np.allclose(NominalModel(dyn, ['rigid_body']).joint_friction(qd), 0.0)
+    d = n.describe()
+    assert d['model_coulomb_epsilon'] == 0.05 and d['model_coulomb_fc'] == dyn.friction.tolist()
+    assert d['viscous_velocity_source'] == d['coulomb_velocity_source'] == 'desired'
+    assert vis.describe()['coulomb_velocity_source'] == 'none'
+
+
+@pytest.mark.parametrize('terms,eps,msg', [
+    (['viscous'], None, 'rigid_body'),
+    (['rigid_body', 'stiction'], None, 'allowed'),
+    (['rigid_body', 'coulomb'], None, 'coulomb_epsilon'),
+    (['rigid_body', 'coulomb'], 0.0, 'coulomb_epsilon'),
+])
+def test_nominal_terms_rejected(dyn, terms, eps, msg):
+    with pytest.raises(InputError, match=msg):
+        NominalModel(dyn, terms, eps)
+
+
+@pytest.mark.parametrize('plugin', ['computed_torque', 'pd_id_ff'])
+def test_joint_terms_use_reference_velocity(model, dyn, plugin):
+    """Viscous and Coulomb terms depend on qd_ref only, never on the measured velocity."""
+    q = np.array(model.candle)
+    z = np.zeros(7)
+    qd = np.full(7, 0.1)
+    zero_gains = {'kp': 0.0, 'kd': 0.0}
+    full = load_controller(plugin, dyn, zero_gains, model.joints, NominalModel(dyn))
+    rb = load_controller(plugin, dyn, zero_gains, model.joints, NominalModel(dyn, ['rigid_body']))
+    assert np.allclose(full.compute(0, q, qd, q, z, z) - rb.compute(0, q, qd, q, z, z), 0.0)
+    assert np.allclose(full.compute(0, q, z, q, qd, z) - rb.compute(0, q, z, q, qd, z),
+                       dyn.damping * 0.1 + dyn.friction * np.tanh(2.0))
+    assert full.model_metadata()['viscous_velocity_source'] == 'desired'
+
+
+def test_computed_torque_coriolis_on_measured_velocity(model, dyn):
+    q = np.array([0.2, 0.25, -1.3, 0.4, -0.3, 0.3, 0.3])
+    z = np.zeros(7)
+    qd = np.full(7, 0.3)
+    ct = load_controller('computed_torque', dyn, {'kp': 0.0, 'kd': 0.0}, model.joints,
+                         NominalModel(dyn, ['rigid_body']))
+    assert np.allclose(ct.compute(0, q, qd, q, z, z), dyn.c(q, qd) + dyn.g(q))
+
+
+def test_pd_gravity_is_gravity_only(model, dyn):
+    q = np.array(model.candle)
+    qd = np.full(7, 0.1)
+    pg = load_controller('pd_gravity', dyn, {'kp': 0.0, 'kd': 0.0}, model.joints, NominalModel(dyn))
+    assert np.allclose(pg.compute(0, q, qd, q, qd, np.zeros(7)), dyn.g(q))
+    meta = pg.model_metadata()
+    assert meta['model_terms_used'] == ['gravity'] and meta['viscous_velocity_source'] == 'none'
+    assert meta['model_terms'] == ['rigid_body', 'viscous', 'coulomb']
+
+
+EXPERIMENTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                           'config', 'experiments')
+
+
+@pytest.mark.parametrize('name', sorted(os.listdir(EXPERIMENTS)))
+def test_shipped_experiments_load(dyn, name):
+    from ur5_controller.torque_control import load_experiment
+    exp = load_experiment(os.path.join(EXPERIMENTS, name))
+    assert exp.trials and 'rigid_body' in NominalModel(dyn, exp.model_terms, exp.coulomb_epsilon).terms
 
 
 def test_pd_terms_oppose_error(model, dyn):

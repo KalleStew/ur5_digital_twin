@@ -1,7 +1,8 @@
-"""Nominal rigid-body model from the URDF: g(q), M(q), C(q, qd) qd via KDL ChainDynParam.
+"""Nominal model from the URDF: g(q), M(q), C(q, qd) qd via KDL ChainDynParam.
 
-Joint friction and damping from <dynamics> are reported separately and are not part of
-M, C or g. Torques follow the actuator convention: the effort that holds or drives the arm.
+Joint damping and friction from <dynamics> are not part of M, C or g; NominalModel adds the
+ones an experiment selects. Torques follow the actuator convention: the effort that holds or
+drives the arm.
 """
 from __future__ import annotations
 
@@ -103,6 +104,57 @@ class Dynamics:
 
     def inverse(self, q, qd, qdd) -> np.ndarray:
         return self.M(q) @ np.asarray(qdd, dtype=float) + self.c(q, qd) + self.g(q)
+
+
+MODEL_TERMS = ('rigid_body', 'viscous', 'coulomb')
+DEFAULT_MODEL_TERMS = ('rigid_body', 'viscous', 'coulomb')
+DEFAULT_COULOMB_EPSILON = 0.05
+
+
+class NominalModel:
+    """Joint terms the model-based laws add to M, C, g, with parameters read from the URDF.
+
+    Both are evaluated on the reference velocity: viscous b * qd_ref and Coulomb
+    Fc * tanh(qd_ref / epsilon). With b * qd on the measured velocity the 100 Hz loop is unstable
+    on the wrists, whose damping dwarfs their inertia (b T / m_eff up to ~600).
+    """
+
+    VELOCITY_SOURCE = 'desired'
+
+    def __init__(self, dyn: Dynamics, terms=DEFAULT_MODEL_TERMS,
+                 coulomb_epsilon=DEFAULT_COULOMB_EPSILON) -> None:
+        from .scheme import InputError
+        terms = tuple(str(t) for t in (terms or ()))
+        unknown = [t for t in terms if t not in MODEL_TERMS]
+        if unknown or len(set(terms)) != len(terms):
+            raise InputError(f'model_terms {list(terms)}: allowed {list(MODEL_TERMS)}, each once')
+        if 'rigid_body' not in terms:
+            raise InputError('model_terms must include rigid_body')
+        self.terms = tuple(t for t in MODEL_TERMS if t in terms)
+        self.epsilon = None
+        if 'coulomb' in self.terms:
+            try:
+                self.epsilon = float(coulomb_epsilon)
+            except (TypeError, ValueError):
+                raise InputError('model_terms includes coulomb: set coulomb_epsilon (rad/s) > 0')
+            if not (math.isfinite(self.epsilon) and self.epsilon > 0):
+                raise InputError('model_terms includes coulomb: set coulomb_epsilon (rad/s) > 0')
+        self.b = dyn.damping.copy() if 'viscous' in self.terms else np.zeros(dyn.n)
+        self.fc = dyn.friction.copy() if 'coulomb' in self.terms else np.zeros(dyn.n)
+
+    def joint_friction(self, qd_ref) -> np.ndarray:
+        qd_ref = np.asarray(qd_ref, dtype=float)
+        tau = self.b * qd_ref
+        if self.epsilon is not None:
+            tau = tau + self.fc * np.tanh(qd_ref / self.epsilon)
+        return tau
+
+    def describe(self) -> dict:
+        return {'model_terms': list(self.terms), 'model_viscous_b': self.b.tolist(),
+                'model_coulomb_fc': self.fc.tolist(),
+                'model_coulomb_epsilon': self.epsilon if self.epsilon is not None else 'none',
+                'viscous_velocity_source': self.VELOCITY_SOURCE if 'viscous' in self.terms else 'none',
+                'coulomb_velocity_source': self.VELOCITY_SOURCE if 'coulomb' in self.terms else 'none'}
 
 
 def is_finite(x) -> bool:

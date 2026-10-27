@@ -20,7 +20,7 @@ from std_msgs.msg import Float64MultiArray
 
 from .brain import Brains
 from .controllers.base import load_controller
-from .dynamics import Dynamics
+from .dynamics import DEFAULT_COULOMB_EPSILON, DEFAULT_MODEL_TERMS, Dynamics, NominalModel
 from .perturbations import Perturbation
 from .preflight import Preflight
 from .robot import Model, StateCache, call_service
@@ -50,6 +50,8 @@ class Experiment:
     trials: list[Trial]
     hold_sec: float
     post_hold_sec: float
+    model_terms: tuple = DEFAULT_MODEL_TERMS
+    coulomb_epsilon: float | None = DEFAULT_COULOMB_EPSILON
     out_dir: str = ''
     force: bool = False
     raw: dict = field(default_factory=dict)
@@ -85,8 +87,12 @@ def load_experiment(path: str, trial: str | None = None, seed: int | None = None
         if not sel:
             raise InputError(f'trial {trial!r} not in {name}; ids: {[t.trial_id for t in trials][:4]}...')
         trials = sel
+    terms = raw.get('model_terms', list(DEFAULT_MODEL_TERMS))
+    if not isinstance(terms, list):
+        raise InputError(f'{os.path.basename(path)}: model_terms must be a list, e.g. [rigid_body, viscous]')
+    eps = raw.get('coulomb_epsilon', None if 'model_terms' in raw else DEFAULT_COULOMB_EPSILON)
     return Experiment(name, path, trials, float(raw.get('hold_sec', 1.0)),
-                      float(raw.get('post_hold_sec', 1.0)), raw=raw)
+                      float(raw.get('post_hold_sec', 1.0)), tuple(terms), eps, raw=raw)
 
 
 class LoopAbort(Exception):
@@ -248,7 +254,8 @@ class TorqueScheme(Scheme):
             exp.out_dir = ensure_writable(exp.out_dir or os.path.join(
                 data_dir(), 'telemetry', f'{exp.name}_{stamp}'))
             self._resolve_command_order()
-            prepared = [self._prepare(exp, t) for t in exp.trials]
+            nominal = NominalModel(self.dyn, exp.model_terms, exp.coulomb_epsilon)
+            prepared = [self._prepare(exp, t, nominal) for t in exp.trials]
         except (InputError, PlatformError) as e:
             return RunResult.fail(e.code, str(e))
         outputs, rows = [], []
@@ -263,10 +270,10 @@ class TorqueScheme(Scheme):
         self._write_summary(exp, rows)
         return RunResult.success(f'{len(rows)} trials -> {exp.out_dir}', outputs)
 
-    def _prepare(self, exp: Experiment, trial: Trial):
+    def _prepare(self, exp: Experiment, trial: Trial, nominal: NominalModel):
         path = resolve_waypoints(trial.trajectory)
         wps = load_joint_csv(path, self.model, start=self.model.candle)
-        ctrl = load_controller(trial.plugin, self.dyn, trial.gains, self.model.joints)
+        ctrl = load_controller(trial.plugin, self.dyn, trial.gains, self.model.joints, nominal)
         pert = Perturbation(trial.perturbation, trial.level, trial.seed, self.cfg['model'],
                             len(self.model.joints))
         return path, wps, ctrl, pert
@@ -332,7 +339,7 @@ class TorqueScheme(Scheme):
             'hold_sec': exp.hold_sec, 'post_hold_sec': exp.post_hold_sec,
             'overruns': loop.overruns, 'gaps': loop.gaps, 'saturated_samples': loop.saturated,
             'max_compute_latency_ms': loop.max_latency_ms,
-            'nominal_model': 'KDL rigid body from URDF; excludes joint damping and friction',
+            **ctrl.model_metadata(),
             'result': 'ok' if failure is None else failure.reason,
             'preflight_after': post.reason, **metrics,
         }
