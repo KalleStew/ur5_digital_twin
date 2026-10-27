@@ -1,0 +1,9 @@
+# Task-space input for `ur5 plan <name> --points example.points.yaml`.
+# tool0 poses in the world frame: xyz in metres, rpy in radians. A point without rpy keeps the
+# previous orientation. Candle is a straight-arm singularity, so the first point sets an
+# orientation the arm can reach on a straight line from it.
+points:
+  - {xyz: [-0.304, 0.079, 1.727], rpy: [3.142, 1.100, 0.200]}
+  - {xyz: [-0.307, -0.043, 1.646], rpy: [2.710, 0.934, -0.020]}
+  - {xyz: [-0.426, -0.008, 1.545], rpy: [3.142, 0.800, 0.300]}
+return_home: true

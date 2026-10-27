@@ -80,6 +80,35 @@ def test_ensure_writable_rejects(tmp_path):
         os.chmod(ro, 0o700)
 
 
+WAYPOINTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'waypoints')
+SHIPPED = sorted(f for f in os.listdir(WAYPOINTS) if f.endswith('.csv'))
+
+
+def test_shipped_set_complete():
+    assert {'default_joint.csv', 'default_cartesian.csv', 'demo_15s.csv'} <= set(SHIPPED)
+
+
+@pytest.mark.parametrize('name', SHIPPED)
+def test_shipped_csv_loads(model, name):
+    path = os.path.join(WAYPOINTS, name)
+    if tio.detect_kind(path) == 'cartesian':
+        w = tio.load_cartesian_csv(path)
+        assert all(v[2] > 1.1 for v in w.values), 'tool0 below the table-top clearance'
+    else:
+        w = tio.load_joint_csv(path, model, start=model.candle)
+        assert any(max(abs(a - b) for a, b in zip(q, model.candle)) > 0.1 for q in w.values)
+
+
+def test_example_points_file_loads():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        'planner_cli', os.path.join(os.path.dirname(WAYPOINTS), 'scripts', 'planner_cli.py'))
+    cli = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(cli)
+    points, home = cli.load_points(os.path.join(WAYPOINTS, 'example.points.yaml'))
+    assert len(points) >= 2 and home and all(len(p) in (3, 6) for p in points)
+
+
 def test_min_jerk_reference_endpoints():
     ref = tio.MinJerkReference([0.0, 0.0], [2.0], [[1.0, -1.0]], hold_sec=1.0)
     q, qd, qdd = ref(0.5)
