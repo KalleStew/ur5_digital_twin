@@ -132,7 +132,7 @@
         <origin xyz="0 0 0.39225" rpy="0 1.57079632679 0"/>
         <axis xyz="0 1 0"/>
         <limit effort="28.0" velocity="3.14159" acceleration="5.0" jerk="10.0" lower="-6.28318" upper="6.28318"/>
-        <dynamics damping="5.0" friction="2.0"/>
+        <dynamics damping="5.0" friction="0.0"/>
     </joint>
 
     <link name="wrist_1_link">
@@ -151,7 +151,7 @@
         <origin xyz="0 0.093 0" rpy="0 0 0"/>
         <axis xyz="0 0 1"/>
         <limit effort="28.0" velocity="3.14159" acceleration="5.0" jerk="10.0" lower="-6.28318" upper="6.28318"/>
-        <dynamics damping="5.0" friction="2.0"/>
+        <dynamics damping="5.0" friction="0.0"/>
     </joint>
 
     <link name="wrist_2_link">
@@ -170,7 +170,7 @@
         <origin xyz="0 0 0.09465" rpy="0 0 0"/>
         <axis xyz="0 1 0"/>
         <limit effort="28.0" velocity="3.14159" acceleration="5.0" jerk="10.0" lower="-6.28318" upper="6.28318"/>
-        <dynamics damping="5.0" friction="2.0"/>
+        <dynamics damping="5.0" friction="0.0"/>
     </joint>
 
     <link name="wrist_3_link">
