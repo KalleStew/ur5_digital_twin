@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Validate UR5 telemetry: shapes, monotonic sim time, rate within 2 %, gaps, NaN/inf, metadata.
+"""Validate UR5 telemetry: shapes, monotonic sim time, rate within 2 %, gaps, NaN/inf, metadata,
+and for torque trials the sampling-artefact criterion (ur5_controller/oscillation.py).
 
   validate_h5.py <file.h5 | directory> [--tolerance 0.02]
 
@@ -12,6 +13,7 @@ import sys
 
 import numpy as np
 
+from ur5_controller.oscillation import MIN_SAMPLES, NYQUIST_RATIO_MAX, nyquist_ratio
 from ur5_controller.telemetry import DATASETS, REQUIRED_ATTRS
 
 ALWAYS_FINITE = ('t', 'q', 'qd', 'tau_measured')
@@ -61,6 +63,15 @@ def check(path: str, tol: float) -> list[str]:
             dropped = int(round(span * expected)) + 1 - n
             if gaps:
                 problems.append(f'{gaps} gaps > 1.5 periods ({max(dropped, 0)} samples dropped)')
+            if attrs.get('scheme') == 'torque' and n >= MIN_SAMPLES:
+                ratio = nyquist_ratio(np.asarray(f['qd']), expected)
+                if np.any(ratio > NYQUIST_RATIO_MAX):
+                    j = int(np.argmax(ratio))
+                    problems.append(f'sampling artefact: nyquist_ratio {ratio[j]:.2f} > {NYQUIST_RATIO_MAX} '
+                                    f'on {names[j] if j < len(names) else j}')
+                if 'artefact_valid' in attrs and bool(attrs['artefact_valid']) != bool(
+                        np.all(ratio <= NYQUIST_RATIO_MAX)):
+                    problems.append('stored artefact_valid disagrees with the recomputed nyquist_ratio')
         problems.insert(0, f'n={n} rate={rate:.2f}Hz time_source={attrs.get("time_source", "?")}')
     return problems
 

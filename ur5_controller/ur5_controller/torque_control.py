@@ -21,6 +21,7 @@ from std_msgs.msg import Float64MultiArray
 from .brain import Brains
 from .controllers.base import load_controller
 from .dynamics import DEFAULT_COULOMB_EPSILON, DEFAULT_MODEL_TERMS, Dynamics, NominalModel
+from .oscillation import NYQUIST_RATIO_MAX, nyquist_artefact
 from .perturbations import Perturbation
 from .preflight import Preflight
 from .robot import Model, StateCache, call_service
@@ -350,6 +351,9 @@ class TorqueScheme(Scheme):
             EXIT_INTERRUPTED, 'interrupted')
         out = os.path.join(exp.out_dir, f'{trial.trial_id}.h5')
         metrics = self._metrics(rec)
+        artefact = (nyquist_artefact(rec.rows['qd'], metrics['rms_tracking_error_per_joint'],
+                                     self.cfg['brain_b_loop']['rate_hz'])
+                    if 'rms_tracking_error_per_joint' in metrics else {})
         meta = {
             'scheme': 'torque', 'experiment': exp.name, 'experiment_file': os.path.abspath(exp.path),
             'trial_id': trial.trial_id, 'controller': trial.plugin, 'controller_family': ctrl.family,
@@ -365,7 +369,7 @@ class TorqueScheme(Scheme):
             'max_compute_latency_ms': loop.max_latency_ms,
             **ctrl.model_metadata(), **ctrl.gain_metadata(),
             'result': 'ok' if failure is None else failure.reason,
-            'preflight_after': post.reason, **metrics,
+            'preflight_after': post.reason, **metrics, **artefact,
         }
         if len(rec) >= 2:
             write_h5(out, rec, meta)
@@ -374,9 +378,11 @@ class TorqueScheme(Scheme):
             return RunResult.fail(failure.code, failure.reason, outputs)
         if not post.ok:
             return RunResult.fail(post.code, f'Candle reset after trial: {post.reason}', outputs)
+        flag = '' if artefact.get('artefact_valid', True) else (
+            f' INVALID: nyquist_ratio {max(artefact["nyquist_ratio"]):.1f} > {NYQUIST_RATIO_MAX}')
         return RunResult.success(
             f'rate={rec.achieved_rate():.1f}Hz rms_err={metrics["rms_tracking_error"]:.4f}rad '
-            f'effort={metrics["effort_integral"]:.1f}', outputs)
+            f'effort={metrics["effort_integral"]:.1f}{flag}', outputs)
 
     def _supervise(self, loop: TorqueLoop, budget: float) -> None:
         """Wait for the loop to finish; abort if another client takes control authority."""
