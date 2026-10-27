@@ -3,5 +3,10 @@
   <world name="empty">
     <gravity>0 0 -9.81</gravity>
     <physics type="ode" name="default_physics"/>
+    <!-- Declaring any system disables the gz defaults, so Physics, UserCommands and SceneBroadcaster are listed. -->
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
+    <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
+    <plugin filename="gz-sim-apply-link-wrench-system" name="gz::sim::systems::ApplyLinkWrench"/>
   </world>
 </sdf>
