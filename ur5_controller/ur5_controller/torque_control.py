@@ -1,7 +1,7 @@
-"""Brain B scheme: atomic A->B handoff, /joint_states-locked torque loop, watchdogs, B->A exit.
+"""Brain B scheme: atomic A->B handoff, joint-state-locked torque loop, watchdogs, B->A exit.
 
 Contains no control law; plug-ins in controllers/ compute tau. The loop runs once per
-/joint_states sample (one controller_manager cycle), so its timing follows /clock.
+joint state sample, which StateCache delivers on an exact sim-time grid (topics.joint_states_rate_hz).
 """
 from __future__ import annotations
 
@@ -97,7 +97,7 @@ class LoopAbort(Exception):
 
 
 class TorqueLoop(threading.Thread):
-    """One compute+publish per new /joint_states sample."""
+    """One compute+publish per new joint state sample."""
 
     def __init__(self, scheme: 'TorqueScheme', controller, pert: Perturbation, ref, rec: Recorder):
         super().__init__(name='brain_b_loop', daemon=False)
@@ -158,14 +158,14 @@ class TorqueLoop(threading.Thread):
                 raise LoopAbort(EXIT_INTERRUPTED, 'interrupted')
             seq, smp = st.wait_next(seq, self.lc['clock_stall_sec'])
             if smp is None:
-                raise LoopAbort(EXIT_SAFETY, f'no /joint_states for {self.lc["clock_stall_sec"]}s '
+                raise LoopAbort(EXIT_SAFETY, f'no joint states for {self.lc["clock_stall_sec"]}s '
                                              '(sim paused or stopped)')
             # Wall-clock: compute latency is a measurement, not a timing source.
             w0 = time.perf_counter()
             if prev_t is not None:
                 gap = smp.t - prev_t
                 if gap > stale:
-                    raise LoopAbort(EXIT_SAFETY, f'/joint_states stale: {gap * 1000:.0f} ms gap')
+                    raise LoopAbort(EXIT_SAFETY, f'joint states stale: {gap * 1000:.0f} ms gap')
                 if gap > 1.5 * dt_nom:
                     self.gaps += 1
             prev_t = smp.t
@@ -298,7 +298,7 @@ class TorqueScheme(Scheme):
             self.state.wait_next(seq0 + 2, 5.0)
             if loop.published < 2 or loop.done_evt.is_set():
                 raise LoopAbort(EXIT_PLATFORM, loop.failure.reason if loop.failure else
-                                'torque loop did not start; is /joint_states publishing?')
+                                'torque loop did not start; are joint states publishing?')
             self.brains.switch_to('b')
             latest = self.state.latest()
             loop.start_run(latest.t)
@@ -397,7 +397,7 @@ def hold_under_b(scheme: TorqueScheme, seconds: float | None) -> RunResult:
         return RunResult.fail(EXIT_PLATFORM, str(e))
     smp = scheme.state.wait_for_state(10.0)
     if smp is None:
-        return RunResult.fail(EXIT_PLATFORM, 'no /joint_states; is the sim running?')
+        return RunResult.fail(EXIT_PLATFORM, 'no joint states; is the sim running?')
     ctrl = load_controller('pd_gravity', scheme.dyn, scheme.cfg['brain_b_hold_gains'],
                            scheme.model.joints)
     q = list(smp.q)

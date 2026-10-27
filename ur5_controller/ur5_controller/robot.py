@@ -145,9 +145,13 @@ class StateSample:
 
 
 class StateCache:
-    """Latest /joint_states in controller order, plus an optional recording window."""
+    """Latest joint state in controller order, plus an optional recording window.
 
-    def __init__(self, node, joints, topic: str = '/joint_states') -> None:
+    With rate_hz set, samples are decimated on their header stamps: the first sample at or after
+    each 1/rate_hz sim-time boundary is kept, so a 1 kHz physics-stamped stream yields an exact grid.
+    """
+
+    def __init__(self, node, joints, topic: str = '/joint_states', rate_hz: float | None = None) -> None:
         from sensor_msgs.msg import JointState
         self.node = node
         self.joints = tuple(joints)
@@ -156,6 +160,8 @@ class StateCache:
         self._seq = 0
         self._rec: list[StateSample] | None = None
         self._listeners = []
+        self._period = 1.0 / rate_hz if rate_hz else 0.0
+        self._next_t = 0.0
         node.create_subscription(JointState, topic, self._on_js, 50)
 
     @property
@@ -165,13 +171,17 @@ class StateCache:
         return ns * 1e-9 if ns > 0 else None
 
     def _on_js(self, msg) -> None:
+        hdr = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
+        if self._period and hdr > 0.0:
+            if hdr < self._next_t - 1e-6:
+                return
+            self._next_t = (math.floor(hdr / self._period + 1e-6) + 1) * self._period
         try:
             q = reorder(msg.name, msg.position, self.joints)
             qd = reorder(msg.name, msg.velocity, self.joints) if msg.velocity else [math.nan] * 7
             tau = reorder(msg.name, msg.effort, self.joints) if msg.effort else [math.nan] * 7
         except (KeyError, IndexError):
             return
-        hdr = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9
         clk = self._clock_t if self._clock_t is not None else math.nan
         if hdr > 0.0:
             t, src = hdr, 'joint_state_header'
@@ -270,25 +280,9 @@ def call_service(client, request, timeout: float):
     return fut.result()
 
 
-_RATE_CACHE: dict[int, float] = {}
-
-
-def joint_state_rate(node, cfg: dict, default: float = 100.0) -> float:
-    """/joint_states rate (Hz): the broadcaster's own update_rate, else the controller_manager's."""
-    if id(node) in _RATE_CACHE:
-        return _RATE_CACHE[id(node)]
-    from rcl_interfaces.srv import GetParameters
-    rate = default
-    ns = cfg['controller_manager'].rsplit('/', 1)[0]
-    for owner in (f'{ns}/{cfg["joint_state_broadcaster"]}', cfg['controller_manager']):
-        cli = node.create_client(GetParameters, f'{owner}/get_parameters')
-        res = call_service(cli, GetParameters.Request(names=['update_rate']), 5.0)
-        node.destroy_client(cli)
-        if res and res.values and res.values[0].integer_value > 0:
-            rate = float(res.values[0].integer_value)
-            break
-    _RATE_CACHE[id(node)] = rate
-    return rate
+def state_cache(node, model, cfg: dict) -> StateCache:
+    t = cfg['topics']
+    return StateCache(node, model.joints, t['joint_states'], t.get('joint_states_rate_hz'))
 
 
 def wait_future(fut, timeout: float):

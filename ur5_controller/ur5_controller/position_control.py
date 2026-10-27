@@ -23,7 +23,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 
 from .brain import Brains
 from .preflight import Preflight, seconds_to_duration
-from .robot import (Model, StateCache, call_service, joint_state_rate, max_abs_diff, reorder,
+from .robot import (Model, StateCache, call_service, max_abs_diff, reorder,
                     wait_future)
 from .scheme import (EXIT_INTERRUPTED, EXIT_PLATFORM, EXIT_RUN_FAILED, InputError,
                      PlatformError, RunResult, Scheme)
@@ -240,4 +240,4 @@ class PositionScheme(Scheme):
         return on_sample
 
     def _expected_rate(self) -> float:
-        return joint_state_rate(self.node, self.cfg)
+        return float(self.cfg['topics']['joint_states_rate_hz'])

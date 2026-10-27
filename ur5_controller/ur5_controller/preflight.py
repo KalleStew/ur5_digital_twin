@@ -54,7 +54,7 @@ class Preflight:
         except PlatformError as e:
             return RunResult.fail(EXIT_PLATFORM, str(e))
         if self.state.wait_for_state(10.0) is None:
-            return RunResult.fail(EXIT_PLATFORM, 'no /joint_states; is the sim running?')
+            return RunResult.fail(EXIT_PLATFORM, 'no joint states; is the sim running?')
         if not self.client.wait_for_server(timeout_sec=15.0):
             return RunResult.fail(EXIT_PLATFORM, f'{self.cfg["brain_a"]["action"]} not available')
         goal = FollowJointTrajectory.Goal()

@@ -1,4 +1,4 @@
-"""Torque controller plug-in interface. Brain B calls compute() once per /joint_states sample."""
+"""Torque controller plug-in interface. Brain B calls compute() once per joint state sample."""
 from __future__ import annotations
 
 import importlib

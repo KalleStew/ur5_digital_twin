@@ -13,7 +13,10 @@ brain_b:
   command_topic: /forward_effort_controller/commands
 
 topics:
-  joint_states: /joint_states
+  # Physics-stamped joint states (gz JointStatePublisher, every physics step), decimated on their
+  # stamps to joint_states_rate_hz. On hardware, point this at the robot's /joint_states.
+  joint_states: /ur5/gz/joint_states
+  joint_states_rate_hz: 100.0
   clock: /clock
 
 moveit:
