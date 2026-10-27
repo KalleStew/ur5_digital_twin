@@ -43,9 +43,6 @@ Diagnostics:
 
 Build:
   build [pkg…] | clean
-
-Presentation one-shot (GUI + motion):
-  ~/ros2_ws/src/ur5_digital_twin/scripts/run_presentation_demo.sh
 EOF
     ;;
   setup)   ur5setup "$@" ;;

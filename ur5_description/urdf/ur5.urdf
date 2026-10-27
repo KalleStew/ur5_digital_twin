@@ -197,27 +197,13 @@
     </joint>
     <link name="tool0"/>
 
-    <!-- Gazebo Harmonic: World plugin that boots the controller_manager and
-         connects gz_ros2_control hardware interfaces. Must be present for
-         the spawner nodes in the launch file to find /controller_manager. -->
-    <!-- <gazebo>
-        <plugin filename="gz_ros2_control-system"
-                name="gz_ros2_control::GazeboSimROS2ControlPlugin">
-            <ros>
-                <remapping>~/robot_description:=/robot_description</remapping>
-            </ros>
-        </plugin>
-    </gazebo> -->
-    
-    <!-- New Gazebo plugin for ROS 2 control -->
+    <!-- Starts /controller_manager inside Gazebo; the launch file substitutes the YAML path. -->
     <gazebo>
         <plugin filename="gz_ros2_control-system" name="gz_ros2_control::GazeboSimROS2ControlPlugin">
             <parameters>__ROS2_CONTROLLERS_YAML__</parameters>
         </plugin>
     </gazebo>
 
-    <!-- URDF 1.2: acceleration + jerk limits prevent physics solver explosions
-         at simulation startup. These are parsed by gz_ros2_control and MoveIt. -->
     <ros2_control name="GazeboSystem" type="system">
         <hardware>
             <plugin>gz_ros2_control/GazeboSimSystem</plugin>
