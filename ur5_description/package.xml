@@ -3,7 +3,7 @@
 <package format="3">
   <name>ur5_description</name>
   <version>0.0.0</version>
-  <description>The 6-DOF UR5 arm description and simulation package</description>
+  <description>URDF, meshes, world and Gazebo bring-up for the 7-DOF UR5 digital twin on a workbench.</description>
   <maintainer email="kallestewart@todo.todo">kallestewart</maintainer>
   <license>Apache-2.0</license>
 
@@ -15,6 +15,9 @@
   <exec_depend>ros2controlcli</exec_depend>
   <exec_depend>joint_state_broadcaster</exec_depend>
   <exec_depend>joint_trajectory_controller</exec_depend>
+  <exec_depend>effort_controllers</exec_depend>
+  <exec_depend>controller_manager</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
