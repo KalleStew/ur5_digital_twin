@@ -3,6 +3,9 @@ build/
 install/
 log/
 
+# Agent plans, logs, reports, scratch
+.agent/
+
 # Dynamic Simulation Data
 *.csv
 *.h5
