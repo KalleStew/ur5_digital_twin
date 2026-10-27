@@ -315,11 +315,7 @@ class Harness:
         return path
 
     def stage_collision(self) -> None:
-        wp_dirs = [os.path.join(REPO, 'ur5_controller', 'waypoints'),
-                   os.path.join(REPO, 'ur5_controller', 'src', 'waypoints')]
-        files = []
-        for d in wp_dirs:
-            files += sorted(glob.glob(os.path.join(d, '*.csv')))
+        files = sorted(glob.glob(os.path.join(REPO, 'ur5_controller', 'waypoints', '*.csv')))
         tracked = subprocess.run(['git', 'ls-files'], cwd=REPO, capture_output=True,
                                  text=True).stdout.split()
         demo = [f for f in tracked if f.endswith('demo_15s.csv')]
@@ -340,13 +336,8 @@ class Harness:
                        last_line(p.stdout + p.stderr))
 
     def stage_joint_run(self, p) -> None:
-        src = None
-        for d in ('ur5_controller/waypoints', 'ur5_controller/src/waypoints'):
-            c = os.path.join(REPO, d, 'default_joint.csv')
-            if os.path.exists(c):
-                src = c
-                break
-        if src is None:
+        src = os.path.join(REPO, 'ur5_controller', 'waypoints', 'default_joint.csv')
+        if not os.path.exists(src):
             self.r.add('S5', 'joint CSV run', False, 'default_joint.csv missing')
             return
         wps = read_joint_csv(src)
@@ -385,13 +376,8 @@ class Harness:
         self.settle_hold(p, 'after joint run + reset', 'S3c', 5.0)
 
     def stage_cartesian_run(self, p) -> None:
-        src = None
-        for d in ('ur5_controller/waypoints', 'ur5_controller/src/waypoints'):
-            c = os.path.join(REPO, d, 'default_cartesian.csv')
-            if os.path.exists(c):
-                src = c
-                break
-        if src is None:
+        src = os.path.join(REPO, 'ur5_controller', 'waypoints', 'default_cartesian.csv')
+        if not os.path.exists(src):
             self.r.add('S5c', 'cartesian CSV run', False, 'default_cartesian.csv missing')
             return
         p.clear()
@@ -411,7 +397,6 @@ class Harness:
             'empty': '',
             'header_only': hdr,
             'wrong_columns': hdr + '2.0,0,0,-1.5708,0,0\n',
-            'columns_out_of_order': 'time_sec,' + ','.join(reversed(JOINTS)) + '\n' + good,
             'non_monotonic_time': hdr + '4.0,0,0,-1.5708,0,0,0,0\n' + good,
             'zero_first_time': hdr + '0.0,0,0,-1.4,0,0,0,0\n',
             'nan_value': hdr + '2.0,0,0,nan,0,0,0,0\n',
@@ -430,7 +415,73 @@ class Harness:
             self.r.add('S4', f'edge CSV {name}: rejected, non-zero exit, arm not moved',
                        rc not in (0, 124) and moved < 0.02,
                        f'exit={rc} excursion={moved:.3f} | {last_line(out)}')
+        target = [0.5, 0.3, -1.2, 0.6, -0.4, 0.3, 0.0]
+        path = self.write_csv('edge_columns_out_of_order.csv',
+                              'time_sec,' + ','.join(reversed(JOINTS)) + '\n4.0,'
+                              + ','.join(str(v) for v in reversed(target)) + '\n')
+        p.clear()
+        rc, out = ur5(['run', path, '--out', 'edge_columns_out_of_order'], self.env, self.cwd, 120,
+                      self.log)
+        miss = min((max(abs(a - b) for a, b in zip(x.q, target)) for x in p.samples()),
+                   default=math.inf)
+        self.r.add('S4o', 'edge CSV columns out of order: resolved by header name, target reached',
+                   rc == 0 and miss <= GOAL_TOL, f'exit={rc} closest approach={miss:.4f} | {last_line(out)}')
         self.pid_guard('edge CSVs')
+
+    def stage_planner(self, p) -> None:
+        out_csv = os.path.join(self.data_dir, 'waypoints', 'harness_plan.csv')
+        rc, out = ur5(['plan', 'harness_plan', '--points', 'example.points.yaml'], self.env, self.cwd,
+                      300, self.log)
+        self.r.add('S12', 'ur5 plan --points example.points.yaml (no TTY) exports a joint CSV',
+                   rc == 0 and os.path.isfile(out_csv), f'exit={rc} | {last_line(out)}')
+        bad = self.write_csv('inside_table.points.yaml', 'points:\n  - [0.3, 0.0, 0.5]\n')
+        rc, out = ur5(['plan', 'harness_bad', '--points', bad], self.env, self.cwd, 300, self.log)
+        self.r.add('S12b', 'ur5 plan through the table: refused, non-zero exit, nothing exported',
+                   rc not in (0, 124) and not os.path.exists(
+                       os.path.join(self.data_dir, 'waypoints', 'harness_bad.csv')),
+                   f'exit={rc} | {last_line(out)}')
+        if os.path.isfile(out_csv):
+            rc, out = ur5(['run', 'harness_plan.csv', '--out', 'harness_plan'], self.env, self.cwd,
+                          300, self.log)
+            self.r.add('S12c', 'ur5 run <planner export> exits 0', rc == 0,
+                       f'exit={rc} | {last_line(out)}')
+        self.pid_guard('planner')
+
+    def stage_sigint(self, p) -> None:
+        h5 = os.path.join(self.data_dir, 'telemetry', 'harness_sigint.h5')
+        p.clear()
+        bg = ur5_bg(['run', 'demo_15s.csv', '--out', 'harness_sigint'], self.env, self.cwd, self.log)
+        moved = 0.0
+        # Wall-clock give-up while waiting for the run to leave Candle.
+        deadline = time.time() + 120
+        while time.time() < deadline and moved < 0.1 and bg.poll() is None:
+            s = p.latest()
+            if s:
+                moved = max(abs(a - b) for a, b in zip(s.q, CANDLE))
+            time.sleep(0.1)
+        with contextlib.suppress(ProcessLookupError):
+            os.killpg(bg.pid, signal.SIGINT)
+        try:
+            rc = bg.wait(timeout=60)
+        except subprocess.TimeoutExpired:
+            os.killpg(bg.pid, signal.SIGKILL)
+            rc = 124
+        p.clear()
+        p.wait_sim(2.0, 30)
+        s = p.samples()
+        drift = (max(max(abs(a - b) for a, b in zip(x.q, s[0].q)) for x in s) if s else math.inf)
+        st = p.controllers()
+        self.r.add('S11a', 'Ctrl-C during ur5 run: exit 130, arm held (drift < 0.005 over 2 s), A active',
+                   rc == 130 and moved >= 0.1 and drift < HOLD_MAX_ERR and bool(st)
+                   and st.get(JTC) == 'active',
+                   f'exit={rc} excursion_at_sigint={moved:.3f} drift={drift:.4f} {st}')
+        ok, msg = check_h5(h5) if os.path.isfile(h5) else (False, 'no HDF5 written')
+        self.r.add('S11b', 'Ctrl-C during ur5 run: HDF5 closed and readable', ok, msg)
+        rc, out = ur5(['reset'], self.env, self.cwd, 120, self.log)
+        err = self.candle_err(p)
+        self.r.add('S11c', 'ur5 reset after Ctrl-C: exit 0, at Candle', rc == 0 and err <= HOLD_MAX_ERR,
+                   f'exit={rc} err={err:.4f}')
+        self.pid_guard('sigint')
 
     def stage_handoff(self, p) -> None:
         before = p.controllers()
@@ -591,7 +642,8 @@ class Harness:
                     self.pid_guard('bring-up hold')
                     self.stage_collision()
                     for stage in (self.stage_joint_run, self.stage_cartesian_run,
-                                  self.stage_edge_csv, self.stage_handoff,
+                                  self.stage_edge_csv, self.stage_planner, self.stage_sigint,
+                                  self.stage_handoff,
                                   self.stage_reset_negative, self.stage_torque):
                         try:
                             stage(p)
