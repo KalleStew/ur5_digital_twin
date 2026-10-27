@@ -41,6 +41,10 @@ class Controller(TorqueController):
             meta['gain_match_m_eff'] = self.m_eff.tolist()
         return meta
 
+    def velocity_feedback_step(self, m_eff, period: float) -> np.ndarray:
+        """kd acts in acceleration space; M(q) cancels m_eff on the diagonal."""
+        return self.kd * period
+
     def compute(self, t, q, qd, q_ref, qd_ref, qdd_ref):
         q, qd = np.asarray(q), np.asarray(qd)
         v = np.asarray(qdd_ref) + self.kp * (np.asarray(q_ref) - q) + self.kd * (np.asarray(qd_ref) - qd)

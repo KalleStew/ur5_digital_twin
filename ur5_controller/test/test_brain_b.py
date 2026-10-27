@@ -106,14 +106,17 @@ def test_shipped_experiments_load(dyn, name):
 def test_shipped_friction_levels_within_bounds(model, dyn, name):
     from ur5_controller.torque_control import load_experiment, worst_case_inertia
     exp = load_experiment(os.path.join(EXPERIMENTS, name))
-    trials = [t for t in exp.trials if t.perturbation == 'joint_friction']
+    trials = [t for t in exp.trials if t.perturbation == 'viscous_friction']
     if not trials:
         return
     m_eff = worst_case_inertia(dyn, model, exp, 0.01)
     for t in trials:
+        # learned_id weights are not shipped; its Kd acts in N m s/rad like pd_gravity.
+        plugin = 'pd_gravity' if t.plugin == 'learned_id' else t.plugin
+        ctrl = load_controller(plugin, dyn, t.gains, model.joints, gain_pose=model.candle)
         p = Perturbation(t.perturbation, t.level, t.seed, options=t.options)
-        p.bind(model.joints, dyn.damping, dyn.friction, m_eff, 0.01)
-        assert not any(p.metadata()['friction_b_p'][4:])
+        p.bind(model.joints, dyn.damping, m_eff, 0.01, ctrl.velocity_feedback_step(m_eff, 0.01))
+        assert not any(p.metadata()['b_p'][4:])
 
 
 @pytest.mark.parametrize('name', sorted(os.listdir(EXPERIMENTS)))
@@ -193,7 +196,7 @@ def test_learned_id_loads_npz(model, dyn, tmp_path, monkeypatch):
 
 def test_perturbation_sides():
     assert KINDS['velocity_noise'] == 'controller'
-    assert {KINDS[k] for k in ('joint_friction', 'gain_loss', 'tip_payload', 'tip_force')} == {'plant'}
+    assert {KINDS[k] for k in ('viscous_friction', 'gain_loss', 'tip_payload', 'tip_force')} == {'plant'}
 
 
 def test_gain_loss_and_friction_act_on_torque():
@@ -207,45 +210,56 @@ def test_gain_loss_and_friction_act_on_torque():
 PROXIMAL = ['shoulder_pan_joint1', 'shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint']
 
 
-def _friction(level, eps=0.35, joints=PROXIMAL):
-    return Perturbation('joint_friction', level, 0, options={'joints': joints, 'epsilon': eps})
+def _friction(level, joints=PROXIMAL):
+    return Perturbation('viscous_friction', level, 0, options={'joints': joints})
 
 
-def test_joint_friction_scales_urdf_on_listed_joints_from_measured_velocity(model, dyn):
+def test_viscous_friction_scales_urdf_damping_on_listed_joints(model, dyn):
     f = _friction(0.5)
     with pytest.raises(RuntimeError):
         f.command(np.zeros(7), np.zeros(7))
     m_eff = np.diag(dyn.M(model.candle))
-    f.bind(model.joints, dyn.damping, dyn.friction, m_eff, 0.01)
+    pd = load_controller('pd_gravity', dyn, GAINS, model.joints)
+    f.bind(model.joints, dyn.damping, m_eff, 0.01, pd.velocity_feedback_step(m_eff, 0.01))
     qd = np.full(7, 0.2)
     tau = np.full(7, 10.0)
     prox = np.array([j in PROXIMAL for j in model.joints])
-    want = tau - np.where(prox, 0.5 * (dyn.damping * qd + dyn.friction * np.tanh(qd / 0.35)), 0.0)
-    assert np.allclose(f.command(tau, qd), want)
+    assert np.allclose(f.command(tau, qd), tau - np.where(prox, 0.5 * dyn.damping * qd, 0.0))
     assert np.allclose(f.command(tau, qd)[~prox], 10.0)
     assert np.allclose(f.measured_velocity(qd), qd)
     meta = f.metadata()
-    assert meta['perturbed_joints'] == PROXIMAL and meta['friction_velocity_source'] == 'measured'
-    assert meta['friction_epsilon'] == 0.35 and meta['friction_fraction'] == 0.5
+    assert meta['perturbation_type'] == 'viscous_friction' and meta['velocity_source'] == 'measured'
+    assert meta['perturbed_joints'] == PROXIMAL and meta['friction_fraction'] == 0.5
+    assert meta['b_p'][:4] == [15.0] * 4 and not any(meta['b_p'][4:])
     zero = _friction(0.0)
-    zero.bind(model.joints, dyn.damping, dyn.friction, m_eff, 0.01)
+    zero.bind(model.joints, dyn.damping, m_eff, 0.01, np.zeros(7))
     assert np.allclose(zero.command(tau, qd), tau)
 
 
-def test_joint_friction_refuses_unstable_levels(model, dyn):
+def test_viscous_friction_refuses_unstable_levels(model, dyn):
     m_eff = np.diag(dyn.M(model.candle))
     with pytest.raises(InputError, match='wrist_1_joint'):
         _friction(0.25, joints=PROXIMAL + ['wrist_1_joint']).bind(
-            model.joints, dyn.damping, dyn.friction, m_eff, 0.01)
-    with pytest.raises(InputError, match='epsilon'):
-        _friction(0.5, eps=0.05).bind(model.joints, dyn.damping, dyn.friction, m_eff, 0.01)
+            model.joints, dyn.damping, m_eff, 0.01, np.zeros(7))
+    with pytest.raises(InputError, match=r'\(Kd \+ b_p\).*elbow_joint|elbow_joint.*\(Kd \+ b_p\)'):
+        _friction(0.5).bind(model.joints, dyn.damping, m_eff, 0.01, np.full(7, 0.7))
     with pytest.raises(InputError, match='unknown joints'):
-        _friction(0.25, joints=['nope']).bind(model.joints, dyn.damping, dyn.friction, m_eff, 0.01)
+        _friction(0.25, joints=['nope']).bind(model.joints, dyn.damping, m_eff, 0.01, np.zeros(7))
     for bad in ({'viscous': 1.0}, -0.1):
         with pytest.raises(InputError):
             _friction(bad)
     with pytest.raises(InputError, match='joints'):
-        Perturbation('joint_friction', 0.25, 0, options={'epsilon': 0.35})
+        Perturbation('viscous_friction', 0.25, 0, options={})
+    with pytest.raises(InputError, match='unknown keys'):
+        Perturbation('viscous_friction', 0.25, 0, options={'joints': PROXIMAL, 'epsilon': 0.35})
+
+
+@pytest.mark.parametrize('plugin', ['pd_gravity', 'pd_id_ff', 'computed_torque'])
+def test_velocity_feedback_step_matches_joint_damping(plugin, model, dyn):
+    g = dict(GAINS, protocol='joint_gain_match_at_candle') if plugin == 'computed_torque' else GAINS
+    c = load_controller(plugin, dyn, g, model.joints, gain_pose=model.candle)
+    m = np.diag(dyn.M(model.candle))
+    assert np.allclose(c.velocity_feedback_step(m, 0.01), np.asarray(GAINS['kd']) * 0.01 / m)
 
 
 def test_velocity_noise_seeded_and_controller_side():

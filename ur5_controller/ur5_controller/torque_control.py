@@ -269,7 +269,7 @@ class TorqueScheme(Scheme):
             self._resolve_command_order()
             nominal = NominalModel(self.dyn, exp.model_terms, exp.coulomb_epsilon)
             m_eff = (self._worst_case_inertia(exp)
-                     if any(t.perturbation == 'joint_friction' for t in exp.trials) else None)
+                     if any(t.perturbation == 'viscous_friction' for t in exp.trials) else None)
             prepared = [self._prepare(exp, t, nominal, m_eff) for t in exp.trials]
         except (InputError, PlatformError) as e:
             return RunResult.fail(e.code, str(e))
@@ -296,8 +296,9 @@ class TorqueScheme(Scheme):
         pert = Perturbation(trial.perturbation, trial.level, trial.seed, self.cfg['model'],
                             len(self.model.joints), trial.options)
         if m_eff is not None:
-            pert.bind(self.model.joints, self.dyn.damping, self.dyn.friction, m_eff,
-                      1.0 / self.cfg['brain_b_loop']['rate_hz'])
+            period = 1.0 / self.cfg['brain_b_loop']['rate_hz']
+            pert.bind(self.model.joints, self.dyn.damping, m_eff, period,
+                      ctrl.velocity_feedback_step(m_eff, period))
         return path, wps, ctrl, pert
 
     def _write_summary(self, exp: Experiment, rows) -> None:
@@ -355,7 +356,7 @@ class TorqueScheme(Scheme):
             'gains': trial.gains, 'seed': trial.seed,
             'perturbation': {'type': trial.perturbation, 'level': trial.level,
                              'level_index': trial.level_index},
-            'perturbation_side': pert.side, **pert.metadata(),
+            'perturbation_type': trial.perturbation, 'perturbation_side': pert.side, **pert.metadata(),
             'trajectory_file': os.path.abspath(path),
             'trajectory_sha256': sha256(path), 'rtf': rtf,
             'expected_rate_hz': self.cfg['brain_b_loop']['rate_hz'],

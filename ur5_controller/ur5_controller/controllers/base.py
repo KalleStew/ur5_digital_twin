@@ -50,6 +50,10 @@ class TorqueController:
         """Gain protocol and the gains compute() applies, for the HDF5 metadata."""
         return {'gain_protocol': 'none', 'gains_effective': {'kp': self.kp.tolist(), 'kd': self.kd.tolist()}}
 
+    def velocity_feedback_step(self, m_eff, period: float) -> np.ndarray:
+        """Per-joint Kd T / m_eff of the measured-velocity feedback (kd in N m s/rad)."""
+        return self.kd * period / np.asarray(m_eff, dtype=float)
+
     def reset(self) -> None:
         """Called before each trial."""
 
