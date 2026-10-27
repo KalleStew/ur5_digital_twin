@@ -79,27 +79,30 @@ class Perturbation:
         return tau
 
     # Payload and tip force use the gz ApplyLinkWrench system (persistent until cleared).
-    def _gz(self, service: str, req: str) -> None:
-        world = self.cfg['gz_world']
-        cmd = ['gz', 'service', '-s', f'/world/{world}/wrench/{service}', '--reqtype',
-               'gz.msgs.EntityWrench', '--reptype', 'gz.msgs.Empty', '--timeout', '3000', '--req', req]
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
-        if p.returncode != 0 or 'timed out' in (p.stdout + p.stderr).lower():
-            raise PlatformError(f'gz wrench/{service} failed: {(p.stdout + p.stderr).strip()[:120]}')
+    # Its interface is topics, so a missing subscriber is checked first; a publish alone cannot fail.
+    def _gz(self, topic: str, msg_type: str, payload: str) -> None:
+        name = f'/world/{self.cfg["gz_world"]}/wrench' + (f'/{topic}' if topic else '')
+        info = subprocess.run(['gz', 'topic', '-i', '-t', name], capture_output=True, text=True, timeout=10)
+        if 'Subscribers' not in info.stdout:
+            raise PlatformError(f'{name} has no subscriber; the world lacks the ApplyLinkWrench system')
+        p = subprocess.run(['gz', 'topic', '-t', name, '-m', msg_type, '-p', payload],
+                           capture_output=True, text=True, timeout=10)
+        if p.returncode != 0:
+            raise PlatformError(f'gz publish on {name} failed: {(p.stdout + p.stderr).strip()[:120]}')
 
     def _entity(self) -> str:
-        return (f'entity: {{name: "{self.cfg["gz_model"]}::{self.cfg["gz_tip_link"]}", '
-                f'type: LINK}}')
+        return f'name: "{self.cfg["gz_model"]}::{self.cfg["gz_tip_link"]}", type: LINK'
 
     def apply_plant(self) -> None:
         if self.kind in ('tip_payload', 'tip_force') and any(abs(x) > 0 for x in self.force):
             fx, fy, fz = self.force
-            self._gz('persistent', f'{self._entity()}, wrench: {{force: {{x: {fx}, y: {fy}, z: {fz}}}}}')
+            self._gz('persistent', 'gz.msgs.EntityWrench',
+                     f'entity: {{{self._entity()}}}, wrench: {{force: {{x: {fx}, y: {fy}, z: {fz}}}}}')
             self._wrench_on = True
 
     def clear_plant(self) -> None:
         if self._wrench_on:
-            self._gz('clear', self._entity())
+            self._gz('clear', 'gz.msgs.Entity', self._entity())
             self._wrench_on = False
 
 
