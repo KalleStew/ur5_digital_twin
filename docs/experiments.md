@@ -8,11 +8,13 @@ ur5 validate "$UR5_DATA_DIR"
 
 A bare file name is resolved from `ur5_controller/config/experiments/`. Shipped files:
 
-| File | What it runs |
-|---|---|
-| `nominal_check.yaml` | Both trajectories, PD + gravity, PD + inverse dynamics, computed torque, no perturbation, seed 0 |
-| `slice_s10.yaml` | `bench_reach.csv`, PD + gravity and computed torque, gain loss 1.0 and 0.8, seeds 0 and 1 |
-| `benchmark_full.yaml` | Both trajectories, four laws, every perturbation, five seeds |
+
+| File                  | What it runs                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| `nominal_check.yaml`  | Both trajectories, PD + gravity, PD + inverse dynamics, computed torque, no perturbation, seed 0 |
+| `slice_s10.yaml`      | `bench_reach.csv`, PD + gravity and computed torque, gain loss 1.0 and 0.8, seeds 0 and 1        |
+| `benchmark_full.yaml` | Both trajectories, four laws, every perturbation, five seeds                                     |
+
 
 `learned_id` in `benchmark_full.yaml` reads `$UR5_DATA_DIR/models/learned_id.npz`. The file is not shipped. Training is not part of this repository. Remove that controller from the YAML to run the other three laws. The `.npz` holds `W0, b0, ...` with a tanh hidden stack and a linear output, plus `x_mean`, `x_std` (21) and `y_mean`, `y_std` (7). Input is `[q_ref, qd_ref, qdd_ref]`.
 
@@ -24,12 +26,14 @@ A failed trial is recorded and the experiment continues. The run stops if the Ca
 
 Gains below are N·m/rad and N·m·s/rad, joint order `shoulder_pan_joint1`, `shoulder_pan_joint`, `shoulder_lift_joint`, `elbow_joint`, `wrist_1_joint`, `wrist_2_joint`, `wrist_3_joint`.
 
-| Plug-in | Law |
-|---|---|
-| `pd_gravity` | `Kp e + Kd ė + g(q)`. Gravity only. This is the baseline. |
-| `pd_id_ff` | The same `Kp` and `Kd`, plus `M(q_ref) q̈_ref + C(q_ref, q̇_ref) q̇_ref + g(q_ref)` and the joint terms on `q̇_ref`. |
-| `computed_torque` | `M(q) (q̈_ref + kp e + kd ė) + C(q, q̇) q̇ + g(q)` plus the joint terms on `q̇_ref`. `C` uses measured `q̇`. |
-| `learned_id` | `Kp e + Kd ė` plus the network on `(q_ref, q̇_ref, q̈_ref)`. `model_terms` are not evaluated. |
+
+| Plug-in           | Law                                                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `pd_gravity`      | `Kp e + Kd ė + g(q)`. Gravity only. This is the baseline.                                                            |
+| `pd_id_ff`        | The same `Kp` and `Kd`, plus `M(q_ref) q̈_ref + C(q_ref, q̇_ref) q̇_ref + g(q_ref)` and the joint terms on `q̇_ref`. |
+| `computed_torque` | `M(q) (q̈_ref + kp e + kd ė) + C(q, q̇) q̇ + g(q)` plus the joint terms on `q̇_ref`. `C` uses measured `q̇`.         |
+| `learned_id`      | `Kp e + Kd ė` plus the network on `(q_ref, q̇_ref, q̈_ref)`. `model_terms` are not evaluated.                        |
+
 
 `model_terms` selects what the nominal model adds for `pd_id_ff` and `computed_torque`: `rigid_body`, `viscous`, `coulomb`. The default is all three. Viscous is `b q̇_ref` and Coulomb is `Fc tanh(q̇_ref / ε)` with `coulomb_epsilon: 0.05`. `b` and `Fc` are read from the URDF `<dynamics>` at startup. `pd_gravity` does not use them. Both velocity sources are recorded as `desired`.
 
@@ -39,14 +43,16 @@ Gains below are N·m/rad and N·m·s/rad, joint order `shoulder_pan_joint1`, `sh
 
 Levels are frozen in `benchmark_full.yaml`. Nothing is retuned per level or per trajectory.
 
-| Type | Side | Levels | What is applied |
-|---|---|---|---|
-| `none` | plant | 0 | Nothing |
-| `viscous_friction` | plant | 0, 0.25, 0.5 of URDF `b` | Extra `b_p q̇` on the four proximal joints, `q̇` measured |
-| `gain_loss` | plant | 0.9, 0.8, 0.7 | That fraction of the commanded torque reaches the joints |
-| `velocity_noise` | controller | 0.005, 0.02, 0.05 rad/s | Gaussian noise on the `q̇` the law sees. The logged `q̇` stays clean |
-| `tip_payload` | plant | 0.5, 1.0, 2.0 kg | A constant world force `(0, 0, -9.81 m)` at `wrist_3_link`. No added inertia |
-| `tip_force` | plant | `[5,0,0]`, `[10,0,0]`, `[20,0,0]` N | That constant world force at `wrist_3_link` |
+
+| Type               | Side       | Levels                              | What is applied                                                              |
+| ------------------ | ---------- | ----------------------------------- | ---------------------------------------------------------------------------- |
+| `none`             | plant      | 0                                   | Nothing                                                                      |
+| `viscous_friction` | plant      | 0, 0.25, 0.5 of URDF `b`            | Extra `b_p q̇` on the four proximal joints, `q̇` measured                    |
+| `gain_loss`        | plant      | 0.9, 0.8, 0.7                       | That fraction of the commanded torque reaches the joints                     |
+| `velocity_noise`   | controller | 0.005, 0.02, 0.05 rad/s             | Gaussian noise on the `q̇` the law sees. The logged `q̇` stays clean         |
+| `tip_payload`      | plant      | 0.5, 1.0, 2.0 kg                    | A constant world force `(0, 0, -9.81 m)` at `wrist_3_link`. No added inertia |
+| `tip_force`        | plant      | `[5,0,0]`, `[10,0,0]`, `[20,0,0]` N | That constant world force at `wrist_3_link`                                  |
+
 
 Payload and tip force go through the Gazebo persistent wrench topic and are cleared after the trial.
 

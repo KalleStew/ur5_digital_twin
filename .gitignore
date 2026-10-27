@@ -5,6 +5,8 @@ log/
 
 # Agent plans, logs, reports, scratch
 .agent/
+.cursor/
+.pytest_cache/
 
 # Run data belongs in $UR5_DATA_DIR, outside the repository
 *.csv
