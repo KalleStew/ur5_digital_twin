@@ -273,15 +273,20 @@ def call_service(client, request, timeout: float):
 _RATE_CACHE: dict[int, float] = {}
 
 
-def controller_rate(node, cfg: dict, default: float = 100.0) -> float:
-    """controller_manager update_rate (Hz), which is also the /joint_states rate."""
+def joint_state_rate(node, cfg: dict, default: float = 100.0) -> float:
+    """/joint_states rate (Hz): the broadcaster's own update_rate, else the controller_manager's."""
     if id(node) in _RATE_CACHE:
         return _RATE_CACHE[id(node)]
     from rcl_interfaces.srv import GetParameters
-    cli = node.create_client(GetParameters, f'{cfg["controller_manager"]}/get_parameters')
-    res = call_service(cli, GetParameters.Request(names=['update_rate']), 5.0)
-    rate = float(res.values[0].integer_value) if res and res.values and res.values[0].integer_value \
-        else default
+    rate = default
+    ns = cfg['controller_manager'].rsplit('/', 1)[0]
+    for owner in (f'{ns}/{cfg["joint_state_broadcaster"]}', cfg['controller_manager']):
+        cli = node.create_client(GetParameters, f'{owner}/get_parameters')
+        res = call_service(cli, GetParameters.Request(names=['update_rate']), 5.0)
+        node.destroy_client(cli)
+        if res and res.values and res.values[0].integer_value > 0:
+            rate = float(res.values[0].integer_value)
+            break
     _RATE_CACHE[id(node)] = rate
     return rate
 

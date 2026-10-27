@@ -23,7 +23,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 
 from .brain import Brains
 from .preflight import Preflight, seconds_to_duration
-from .robot import (Model, StateCache, call_service, controller_rate, max_abs_diff, reorder,
+from .robot import (Model, StateCache, call_service, joint_state_rate, max_abs_diff, reorder,
                     wait_future)
 from .scheme import (EXIT_INTERRUPTED, EXIT_PLATFORM, EXIT_RUN_FAILED, InputError,
                      PlatformError, RunResult, Scheme)
@@ -62,8 +62,6 @@ class PositionScheme(Scheme):
         self._lock = threading.Lock()
         self._goal = None
         self._abort = threading.Event()
-        node.create_subscription(JointTrajectoryControllerState, cfg['brain_a']['state_topic'],
-                                 self._on_ctrl_state, 10)
 
     def _on_ctrl_state(self, msg) -> None:
         with self._lock:
@@ -167,12 +165,19 @@ class PositionScheme(Scheme):
         seconds_to_duration(goal.goal_time_tolerance, self.ex['goal_time_tolerance_sec'])
         rec = Recorder(self.model.joints)
         listener = self._make_listener(rec)
+        # The trajectory controller publishes its state at the controller rate (1 kHz), so the
+        # subscription exists only while a Brain A trajectory runs; it would starve the Brain B loop.
+        with self._lock:
+            self._ctrl_state = None
+        sub = self.node.create_subscription(JointTrajectoryControllerState,
+                                            self.cfg['brain_a']['state_topic'], self._on_ctrl_state, 10)
         self.state.add_listener(listener)
         # Wall-clock: RTF is a measurement only.
         wall0, sim0 = time.monotonic(), self.state.clock()
         handle = wait_future(self.client.send_goal_async(goal), 15.0)
         if handle is None or not handle.accepted:
             self.state.remove_listener(listener)
+            self.node.destroy_subscription(sub)
             return RunResult.fail(EXIT_RUN_FAILED, 'trajectory goal rejected by the controller')
         with self._lock:
             self._goal = handle
@@ -182,6 +187,7 @@ class PositionScheme(Scheme):
         with self._lock:
             self._goal = None
         self.state.remove_listener(listener)
+        self.node.destroy_subscription(sub)
         wall1, sim1 = time.monotonic(), self.state.clock()
         rtf = ((sim1 - sim0) / (wall1 - wall0) if sim0 is not None and sim1 is not None
                and wall1 > wall0 else math.nan)
@@ -234,4 +240,4 @@ class PositionScheme(Scheme):
         return on_sample
 
     def _expected_rate(self) -> float:
-        return controller_rate(self.node, self.cfg)
+        return joint_state_rate(self.node, self.cfg)
