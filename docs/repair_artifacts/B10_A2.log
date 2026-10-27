@@ -1,5 +1,0 @@
-=== B10 A2 ===
-no abs paths
-no arch
-no LIBGL/DISPLAY
-./ur5_description/launch/sim.launch.py:80:            'Optional gz render engine (e.g. ogre, ogre2). Empty uses Gazebo default. '

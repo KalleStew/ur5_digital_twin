@@ -148,6 +148,8 @@ def find_new_h5(roots: list[str], since: float) -> list[str]:
     found = []
     for root in roots:
         for p in glob.glob(os.path.join(root, '**', '*.h5'), recursive=True):
+            if 'rejected' in os.path.relpath(p, root).split(os.sep):
+                continue
             if os.path.getmtime(p) >= since:
                 found.append(p)
     return sorted(found, key=os.path.getmtime)

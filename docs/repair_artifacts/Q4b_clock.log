@@ -1,3 +1,0 @@
-2026-09-22T21:44:08.581816Z  WARN ThreadId(15) zenoh::net::runtime::orchestrator: Scouting delay elapsed before start conditions are met.
-[INFO] [1790113448.668630108] [ros_gz_bridge]: Creating GZ->ROS Bridge: [/clock (gz.msgs.Clock) -> /clock (rosgraph_msgs/msg/Clock)] (Lazy 0)
-[ros2run]: Killed

@@ -1,7 +1,0 @@
-[INFO] [1790182816.251721388] [interactive_hil_controller]: Batch load: /home/kallestewart/ros2_ws/install/ur5_controller/share/ur5_controller/waypoints/demo_15s.csv
-[INFO] [1790182838.256395313] [interactive_hil_controller]: Returning to Candle Pose...
-[WARN] [1790182868.267751580] [interactive_hil_controller]: Candle Pose reset timed out.
-
-[SUCCESS] Files saved to:
-- /tmp/ur5_demo_verify/data/demo_verify_filtered.csv
-- /tmp/ur5_demo_verify/data/demo_verify_filtered.h5

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import datetime as dt
 import itertools
+import json
 import math
 import os
 import threading
@@ -30,6 +31,9 @@ from .scheme import (EXIT_INTERRUPTED, EXIT_PLATFORM, EXIT_RUN_FAILED, EXIT_SAFE
 from .telemetry import Recorder, write_h5
 from .trajectory_io import (MinJerkReference, check_name, data_dir, ensure_writable,
                             load_joint_csv, resolve_waypoints, sha256)
+from .validation import rejection
+
+MAX_ATTEMPTS = 3
 
 
 @dataclass
@@ -275,15 +279,47 @@ class TorqueScheme(Scheme):
         except (InputError, PlatformError) as e:
             return RunResult.fail(e.code, str(e))
         outputs, rows = [], []
+        failed: list[tuple[str, RunResult]] = []
         for trial, prep in zip(exp.trials, prepared):
-            res = self.run_trial(exp, trial, *prep)
-            rows.append((trial.trial_id, res))
+            # A failed trial is recorded and the run moves on; it stops when the arm cannot be
+            # brought back to Candle before the next trial, or on interrupt. A trial whose file
+            # fails validation is rerun from a fresh controller and seed, up to MAX_ATTEMPTS.
+            rejected: list[str] = []
+            attempts = 0
+            while True:
+                pre = self.pre.run()
+                if not pre.ok:
+                    res = RunResult.fail(pre.code, f'pre-flight: {pre.reason}')
+                    break
+                attempts += 1
+                res = self.run_trial(exp, trial, *prep, rejected=rejected)
+                problem = rejection(res.outputs[0]) if res.ok and res.outputs else ''
+                if not problem:
+                    break
+                kept = self._keep_rejected(exp, res.outputs[0], trial.trial_id, attempts)
+                rejected.append(problem)
+                self.node.get_logger().warning(
+                    f'{trial.trial_id}: attempt {attempts} rejected ({problem}); kept {kept}')
+                if attempts >= MAX_ATTEMPTS:
+                    res = RunResult.fail(EXIT_RUN_FAILED, f'rejected by validation in all {attempts} '
+                                                          f'attempts, last: {problem}')
+                    break
+                prep = self._prepare(exp, trial, nominal, m_eff)
+            rows.append((trial.trial_id, res, attempts))
             outputs += res.outputs
             self.node.get_logger().info(f'{trial.trial_id}: {res.reason}')
-            if not res.ok:
+            if res.ok:
+                continue
+            failed.append((trial.trial_id, res))
+            if not pre.ok or res.code == EXIT_INTERRUPTED or self.abort_evt.is_set():
                 self._write_summary(exp, rows)
-                return RunResult.fail(res.code, f'{trial.trial_id}: {res.reason}', outputs)
+                return RunResult.fail(res.code, f'{trial.trial_id}: {res.reason} '
+                                                f'({len(rows)}/{len(exp.trials)} trials run)', outputs)
         self._write_summary(exp, rows)
+        if failed:
+            tid, first = failed[0]
+            return RunResult.fail(first.code, f'{len(failed)}/{len(rows)} trials failed, first {tid}: '
+                                              f'{first.reason} -> {exp.out_dir}', outputs)
         return RunResult.success(f'{len(rows)} trials -> {exp.out_dir}', outputs)
 
     def _worst_case_inertia(self, exp: Experiment) -> np.ndarray:
@@ -304,14 +340,20 @@ class TorqueScheme(Scheme):
 
     def _write_summary(self, exp: Experiment, rows) -> None:
         with open(os.path.join(exp.out_dir, 'summary.csv'), 'w') as f:
-            f.write('trial_id,ok,code,reason\n')
-            for tid, r in rows:
-                f.write(f'{tid},{int(r.ok)},{r.code},"{r.reason}"\n')
+            f.write('trial_id,ok,code,attempts,reason\n')
+            for tid, r, attempts in rows:
+                f.write(f'{tid},{int(r.ok)},{r.code},{attempts},"{r.reason}"\n')
 
-    def run_trial(self, exp: Experiment, trial: Trial, path, wps, ctrl, pert) -> RunResult:
-        pre = self.pre.run()
-        if not pre.ok:
-            return RunResult.fail(pre.code, f'pre-flight: {pre.reason}')
+    @staticmethod
+    def _keep_rejected(exp: Experiment, path: str, trial_id: str, attempt: int) -> str:
+        dest_dir = ensure_writable(os.path.join(data_dir(), 'rejected', os.path.basename(exp.out_dir)))
+        dest = os.path.join(dest_dir, f'{trial_id}.attempt{attempt}.h5')
+        os.replace(path, dest)
+        return dest
+
+    def run_trial(self, exp: Experiment, trial: Trial, path, wps, ctrl, pert,
+                  rejected: list[str] | None = None) -> RunResult:
+        """One trial from a pre-flighted Candle; the caller runs the pre-flight and validation."""
         np.random.seed(trial.seed)
         ctrl.reset()
         self.post_hold = exp.post_hold_sec
@@ -370,6 +412,7 @@ class TorqueScheme(Scheme):
             **ctrl.model_metadata(), **ctrl.gain_metadata(),
             'result': 'ok' if failure is None else failure.reason,
             'preflight_after': post.reason, **metrics, **artefact,
+            'attempt': len(rejected or []) + 1, 'rejected_attempts': json.dumps(rejected or []),
         }
         if len(rec) >= 2:
             write_h5(out, rec, meta)

@@ -1,7 +1,0 @@
-forward_effort_controller effort_controllers/JointGroupEffortController          inactive
-ur_manipulator_controller joint_trajectory_controller/JointTrajectoryController  active  
-joint_state_broadcaster   joint_state_broadcaster/JointStateBroadcaster          active  
-['elbow_joint', 'shoulder_lift_joint', 'shoulder_pan_joint', 'shoulder_pan_joint1', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
----
-array('d', [-4.715943263070693e-10, -1.5764094239899822, 1.6328891287373225e-10, -4.331851431380028e-13, -2.375725365122773e-10, 5.318303036296816e-11, -1.0013326464106787e-10])
----

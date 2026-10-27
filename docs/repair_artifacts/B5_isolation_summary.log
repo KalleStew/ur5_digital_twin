@@ -1,8 +1,0 @@
-Controller joints order: ['shoulder_pan_joint1', 'shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint']
-index 0: expected=shoulder_pan_joint1  max_|vel|=shoulder_lift_joint (-1.5648e-04)  top3=[('shoulder_lift_joint', '-1.56e-04'), ('wrist_1_joint', '-5.86e-11'), ('wrist_3_joint', '-3.35e-11')]  CHECK
-index 1: expected=shoulder_pan_joint  max_|vel|=shoulder_pan_joint (5.9472e-04)  top3=[('shoulder_pan_joint', '5.95e-04'), ('shoulder_lift_joint', '-8.81e-05'), ('wrist_1_joint', '-6.00e-11')]  PASS
-index 2: expected=shoulder_lift_joint  max_|vel|=wrist_1_joint (-6.0446e-11)  top3=[('wrist_1_joint', '-6.04e-11'), ('wrist_3_joint', '-3.33e-11'), ('elbow_joint', '-1.48e-11')]  CHECK
-index 3: expected=elbow_joint  max_|vel|=wrist_1_joint (-5.3621e-11)  top3=[('wrist_1_joint', '-5.36e-11'), ('wrist_3_joint', '-2.99e-11'), ('shoulder_lift_joint', '-1.39e-11')]  CHECK
-index 4: expected=wrist_1_joint  max_|vel|=shoulder_lift_joint (-7.0931e-05)  top3=[('shoulder_lift_joint', '-7.09e-05'), ('wrist_1_joint', '2.54e-10'), ('wrist_3_joint', '1.67e-10')]  CHECK
-index 5: expected=wrist_2_joint  max_|vel|=wrist_2_joint (4.8675e-10)  top3=[('wrist_2_joint', '4.87e-10'), ('wrist_1_joint', '-6.08e-11'), ('wrist_3_joint', '-3.19e-11')]  PASS
-index 6: expected=wrist_3_joint  max_|vel|=wrist_3_joint (5.5977e-10)  top3=[('wrist_3_joint', '5.60e-10'), ('wrist_1_joint', '-5.56e-11'), ('elbow_joint', '-1.55e-11')]  PASS

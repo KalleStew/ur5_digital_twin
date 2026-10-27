@@ -194,6 +194,80 @@ def test_learned_id_loads_npz(model, dyn, tmp_path, monkeypatch):
     assert np.allclose(c.compute(0.0, q, z, q, z, z), np.arange(7.0))
 
 
+class _Pre:
+    def __init__(self, fail_at=None):
+        self.calls, self.fail_at = 0, fail_at
+
+    def run(self):
+        from ur5_controller.scheme import RunResult
+        self.calls += 1
+        return RunResult.fail(3, 'not at Candle') if self.calls == self.fail_at else RunResult.success()
+
+
+def _runner(tmp_path, dyn, outcomes, pre):
+    """TorqueScheme.run over 4 stub trials whose run_trial results come from `outcomes`."""
+    import logging
+    import threading
+
+    from ur5_controller.scheme import RunResult
+    from ur5_controller.torque_control import Experiment, TorqueScheme, Trial
+    s = TorqueScheme.__new__(TorqueScheme)
+    s.dyn, s.pre, s.abort_evt = dyn, pre, threading.Event()
+    s.node = type('N', (), {'get_logger': staticmethod(lambda: logging.getLogger('t'))})()
+    s._resolve_command_order = lambda: None
+    s._prepare = lambda exp, t, nominal, m_eff=None: ()
+    ran = []
+
+    def run_trial(exp, trial, rejected=None):
+        ran.append(trial.trial_id)
+        code = outcomes.get(trial.trial_id)
+        if code == 130:
+            s.abort_evt.set()
+        out = os.path.join(exp.out_dir, f'{trial.trial_id}.{len(ran)}.h5')
+        open(out, 'w').close()
+        return RunResult.success('ok', [out]) if code is None else RunResult.fail(code, 'boom')
+    s.run_trial = run_trial
+    trials = [Trial(f't{i}', 'x.csv', 'pd_gravity', {}, 'none', 0, 0, 0) for i in range(4)]
+    os.makedirs(tmp_path, exist_ok=True)
+    exp = Experiment('e', 'e.yaml', trials, 1.0, 1.0, out_dir=str(tmp_path))
+    return s.run(exp), ran
+
+
+@pytest.fixture
+def accept_all(monkeypatch):
+    import ur5_controller.torque_control as tc
+    monkeypatch.setattr(tc, 'rejection', lambda path: '')
+
+
+def test_runner_continues_after_failed_trial(tmp_path, dyn, accept_all):
+    res, ran = _runner(tmp_path, dyn, {'t1': 4, 't2': 1}, _Pre())
+    assert ran == ['t0', 't1', 't2', 't3']
+    assert not res.ok and res.code == 4 and '2/4 trials failed, first t1' in res.reason
+    assert open(tmp_path / 'summary.csv').read().count('\n') == 5
+
+
+def test_runner_reruns_rejected_trials(tmp_path, dyn, monkeypatch):
+    import ur5_controller.torque_control as tc
+    monkeypatch.setenv('UR5_DATA_DIR', str(tmp_path / 'data'))
+    verdicts = {'t1.2.h5': '1 gaps', 't2.4.h5': 'gap a', 't2.5.h5': 'gap b', 't2.6.h5': 'gap c'}
+    monkeypatch.setattr(tc, 'rejection', lambda path: verdicts.get(os.path.basename(path), ''))
+    res, ran = _runner(tmp_path / 'run', dyn, {}, _Pre())
+    assert ran == ['t0', 't1', 't1', 't2', 't2', 't2', 't3']
+    assert not res.ok and res.code == 1 and 'rejected by validation in all 3 attempts' in res.reason
+    kept = sorted(os.listdir(tmp_path / 'data' / 'rejected' / 'run'))
+    assert kept == ['t1.attempt1.h5', 't2.attempt1.h5', 't2.attempt2.h5', 't2.attempt3.h5']
+    summary = open(tmp_path / 'run' / 'summary.csv').read().splitlines()
+    assert summary[0] == 'trial_id,ok,code,attempts,reason'
+    assert summary[2].startswith('t1,1,0,2,') and summary[3].startswith('t2,0,1,3,')
+
+
+def test_runner_stops_on_preflight_failure_or_interrupt(tmp_path, dyn, accept_all):
+    res, ran = _runner(tmp_path / 'a', dyn, {}, _Pre(fail_at=3))
+    assert ran == ['t0', 't1'] and res.code == 3 and 'pre-flight' in res.reason
+    res, ran = _runner(tmp_path / 'b', dyn, {'t1': 130}, _Pre())
+    assert ran == ['t0', 't1'] and res.code == 130
+
+
 def test_perturbation_sides():
     assert KINDS['velocity_noise'] == 'controller'
     assert {KINDS[k] for k in ('viscous_friction', 'gain_loss', 'tip_payload', 'tip_force')} == {'plant'}

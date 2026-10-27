@@ -1,5 +1,0 @@
-forward_effort_controller effort_controllers/JointGroupEffortController          inactive
-ur_manipulator_controller joint_trajectory_controller/JointTrajectoryController  active  
-joint_state_broadcaster   joint_state_broadcaster/JointStateBroadcaster          active  
-array('d', [-1.7173938797292222e-10, -1.574037659549462, 5.246693897745238e-11, -7.115972416350813e-14, -3.522258408029943e-11, 8.030872543796775e-12, -1.46359973184834e-11])
----

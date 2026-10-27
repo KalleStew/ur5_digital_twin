@@ -1,128 +1,63 @@
-# UR5 7-DOF Digital Twin & HIL Research Platform
+# UR5 7-DOF digital twin
 
-A comprehensive digital twin and Hardware-in-the-Loop (HIL) simulation platform for a custom 7-DOF UR5 robotic arm, supporting Master's research at the ICE Lab for an MDA Space project. Built on **ROS 2 Jazzy Jalisco** and **Ubuntu 24.04 LTS Noble Numbat**, with **Eclipse Zenoh** as the default middleware and **Gazebo Harmonic** as the physics engine.
+ROS 2 Jazzy, Gazebo Harmonic, and `rmw_zenoh_cpp` on Ubuntu 24.04. One arm, two controllers, one of them active at a time.
 
-> **Platform:** Natively targets Windows WSL2 (Ubuntu 24.04) and Apple Silicon (ARM64) virtual machines.
+Brain A is the joint-trajectory controller. It runs shipped or user waypoint files and the MoveIt planner. Brain B is the torque benchmark: PD + gravity, PD + inverse-dynamics feedforward, computed torque, and a learned inverse-dynamics plug-in. Switching controllers is `ur5 brain` or the start of a torque trial. Resetting the arm is `ur5 candle`. That returns it to `candle_pose` under Brain A. It does not restart Gazebo.
 
----
+`scripts/ur5` finds the workspace, sources Jazzy, sets `RMW_IMPLEMENTATION=rmw_zenoh_cpp`, and starts `rmw_zenohd` if it is not already running. User files go to `$UR5_DATA_DIR`, which defaults to `<workspace>/ur5_data`.
 
-## System Overview
+Setup is [docs/setup.md](docs/setup.md). The torque benchmark is [docs/experiments.md](docs/experiments.md).
 
-This repository provides a physics-enabled digital twin of a UR5 arm with accurate mass/inertia tags, gearbox friction dynamics, and a 1.525 m × 0.76 m × 0.99 m rigid workbench collision boundary. The system operates in two primary modes:
+Exit codes: 0 ok, 1 run failed, 2 input rejected, 3 platform not ready, 4 safety abort, 130 interrupted.
 
-1. **Kinematic Trajectory Planning** — Navigate complex Cartesian paths around rigid obstacles using MoveIt 2 and the `ur_manipulator_controller` (effort-based PID position control).
-2. **Dynamic Torque Injection & Research Sandbox** — Bypass position controllers entirely and push raw torque arrays at 100 Hz directly into the Gazebo physics engine via `forward_effort_controller`, enabling fault detection, disturbance simulation, and AI model validation.
+## Commands
 
----
-
-## Two-Brain Architecture
-
-The system implements a **Dual-Brain Hybrid Control** pattern. Physical safety constraints prevent two controllers from commanding the same motor simultaneously, so control authority is explicitly transferred via a ROS 2 service call:
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│  BRAIN A — Kinematic Brain (C++)                                  │
-│  Node:    multi_waypoint_planner                                  │
-│  Path:    RViz click → MoveIt IK → JointTrajectory →             │
-│           ur_manipulator_controller → Gazebo joints               │
-└────────────────────────┬─────────────────────────────────────────┘
-                         │  /controller_manager/switch_controller
-                         │  (deactivate A, activate B)
-┌────────────────────────▼─────────────────────────────────────────┐
-│  BRAIN B — Research Brain (Python, threaded)                      │
-│  Nodes:   conventional_research.py / ai_research.py              │
-│  Path:    Python loop → Float64MultiArray →                       │
-│           forward_effort_controller → raw joint torques           │
-│  Logging: /joint_states @100 Hz → HDF5 (.h5) telemetry files     │
-└──────────────────────────────────────────────────────────────────┘
-```
-
-The Python scripts use a **background-thread + main-thread spin** pattern to prevent `SingleThreadedExecutor` deadlocks: `rclpy.spin()` runs on the main thread; all blocking control logic (IK, service calls, HDF5 writes) runs in a `threading.Thread`.
-
----
-
-## Key Features
-
-| Feature | Detail |
+| Command | What it does |
 |---|---|
-| **Middleware** | Eclipse Zenoh (`rmw_zenoh_cpp`) — zero-broker, DDS-free, ideal for high-frequency torque arrays |
-| **Physics Engine** | Gazebo Harmonic (`gz_ros2_control/GazeboSimSystem`) |
-| **Position Control** | `ur_manipulator_controller` — effort-command JTC with tuned PID gains |
-| **Torque Control** | `forward_effort_controller` — raw effort pass-through, inline joint array format |
-| **Telemetry** | 100 Hz `/joint_states` logged to HDF5 (`.h5`) via `h5py` |
-| **Startup Safety** | `candle_pose` baked into `ur5.srdf` — arm vertical at boot, clears table |
-| **VM Tolerance** | All controller spawners use `--controller-manager-timeout 30` |
+| `ur5 setup` | Add `scripts/` to `PATH` in `~/.bashrc` |
+| `ur5 build` | `colcon build --symlink-install` from the workspace |
+| `ur5 clean` | Remove `build/`, `install/`, and `log/`. Keeps `$UR5_DATA_DIR` |
+| `ur5 doctor` | Environment report, saved under `$UR5_DATA_DIR/doctor` |
+| `ur5 zenoh` | Restart the `rmw_zenohd` router |
+| `ur5 sim` | Headless Gazebo + MoveIt. One session at a time |
+| `ur5 simgui` | Gazebo GUI + RViz |
+| `ur5 run_sim` | Same as `ur5 simgui` |
+| `ur5 kill` | Stop Gazebo, bridges, `move_group`, and RViz |
+| `ur5 candle` | Pre-flight: Brain A, move to `candle_pose`, verify the settle |
+| `ur5 reset` | Same as `ur5 candle` |
+| `ur5 run` | Execute a waypoint CSV, record HDF5, return to Candle |
+| `ur5 demo` | Run `demo_15s.csv` |
+| `ur5 plan` | Plan through task-space points and export a CSV |
+| `ur5 planner` | Interactive planner menu. RViz Publish Point needs `ur5 simgui` |
+| `ur5 brain` | Switch control authority. `b` holds the pose with PD + gravity |
+| `ur5 torque` | Run an experiment YAML. One HDF5 file per trial |
+| `ur5 data` | Show `$UR5_DATA_DIR` and file counts |
+| `ur5 wp` | List shipped and user waypoint files |
+| `ur5 validate` | Check telemetry shape, rate, timestamps, and metadata |
+| `ur5 ctl` | `ros2 control list_controllers` |
+| `ur5 iface` | `ros2 control list_hardware_interfaces` |
+| `ur5 states` | One `/joint_states` message |
+| `ur5 hz` | Topic rate. Default topic is `/joint_states` |
+| `ur5 test` | Unit tests with `--unit`. Without it, the full sim acceptance run |
 
----
+## Walkthrough
 
-## Repository Structure
-
-```
-ur5_digital_twin/
-├── ur5_description/         # Physical model: URDF, STL meshes, Gazebo plugin tags
-│   ├── urdf/ur5.urdf        # URDF 1.2 with gz_ros2_control, physics gains, accel/jerk limits
-│   ├── meshes/              # Visual and collision STL geometry
-│   └── launch/sim.launch.py # Standalone Gazebo boot (no MoveIt)
-│
-├── ur5_moveit_config/       # MoveIt 2 configuration (Jazzy MoveItConfigsBuilder)
-│   ├── config/
-│   │   ├── ur5.srdf         # Semantic description + candle_pose group state
-│   │   ├── ros2_controllers.yaml  # Controller definitions + forward_effort_controller
-│   │   ├── kinematics.yaml  # KDL solver config
-│   │   └── joint_limits.yaml
-│   └── launch/
-│       └── gazebo_sim.launch.py  # Single master launch file (MoveItConfigsBuilder)
-│
-├── ur5_controller/          # Control logic
-│   ├── src/
-│   │   ├── multi_waypoint_planner.cpp   # C++ Cartesian waypoint planner
-│   │   ├── unified_control.py           # Threaded Python HIL controller
-│   │   └── conventional_cartesian_ik.py # Conventional IK research script
-│   └── launch/planner.launch.py
-│
-└── docs/
-    ├── architecture.md
-    ├── environment_setup.md       # Ubuntu 24.04 / WSL2 / ARM64 / Zenoh setup
-    ├── development_workflow.md    # Threaded Python pattern, controller switching
-    ├── troubleshooting_and_reset.md
-    ├── operation_and_deployment.md
-    └── migration_UB22_to_UB24.md  # Humble → Jazzy migration changelog
-```
-
----
-
-## Quick Start
+From a workspace whose `src/` contains this repository, and with ROS 2 Jazzy installed (see [docs/setup.md](docs/setup.md)):
 
 ```bash
-# 1. Source ROS 2 Jazzy and Zenoh middleware
-source /opt/ros/jazzy/setup.bash
-export RMW_IMPLEMENTATION=rmw_zenoh_cpp
-
-# 2. Build the workspace
 cd ~/ros2_ws
-colcon build --symlink-install
-source install/setup.bash
-
-# 3. Launch the full simulation (Gazebo + MoveIt + RViz)
-ros2 launch ur5_moveit_config gazebo_sim.launch.py
-
-# 4. (Separate terminal) Launch the C++ waypoint planner
-ros2 launch ur5_controller planner.launch.py
+src/ur5_digital_twin/scripts/ur5 build
+src/ur5_digital_twin/scripts/ur5 sim
+src/ur5_digital_twin/scripts/ur5 candle
+src/ur5_digital_twin/scripts/ur5 demo
+src/ur5_digital_twin/scripts/ur5 kill
 ```
 
----
+`ur5 run` with no file runs `default_joint.csv`. Add `--cartesian` for `default_cartesian.csv`. A torque slice that does not need learned weights:
 
-## Documentation
-
-| Document | Description |
-|---|---|
-| [docs/architecture.md](docs/architecture.md) | Node graph, topic routing, dual-brain data flow |
-| [docs/environment_setup.md](docs/environment_setup.md) | Ubuntu 24.04, WSL2, ARM64 VM, Zenoh installation |
-| [docs/development_workflow.md](docs/development_workflow.md) | Threaded Python pattern, controller switching, HDF5 logging |
-| [docs/troubleshooting_and_reset.md](docs/troubleshooting_and_reset.md) | Cache purge, zombie node kill, Zenoh reset |
-| [docs/operation_and_deployment.md](docs/operation_and_deployment.md) | Launch commands, trajectory execution, controller swap |
-| [docs/migration_UB22_to_UB24.md](docs/migration_UB22_to_UB24.md) | Humble → Jazzy migration technical changelog |
-
----
-
-**Maintainer:** Kalle Stewart — ICE Lab, MDA Space Research Project
+```bash
+src/ur5_digital_twin/scripts/ur5 sim
+src/ur5_digital_twin/scripts/ur5 torque slice_s10.yaml
+src/ur5_digital_twin/scripts/ur5 validate "$UR5_DATA_DIR"
+src/ur5_digital_twin/scripts/ur5 kill
+```
