@@ -42,6 +42,12 @@ class InputError(Exception):
 
 def load_points(path: str):
     import yaml
+    from ur5_controller.scheme import InputError as SchemeInputError
+    from ur5_controller.trajectory_io import resolve_waypoints
+    try:
+        path = resolve_waypoints(path)
+    except SchemeInputError as e:
+        raise InputError(str(e))
     try:
         with open(path) as f:
             doc = yaml.safe_load(f) or {}
@@ -141,8 +147,9 @@ def headless(cli: PlannerCli, args, stop: threading.Event, out: dict) -> None:
             out['code'], out['msg'] = 130, 'interrupted'
             return
         ok, msg = cli.request(s, stop)
-        print(('+ ' if ok else '') + msg, file=sys.stdout if ok else sys.stderr)
-        if not ok:
+        if ok:
+            print('+ ' + msg, flush=True)
+        else:
             out['code'], out['msg'] = 1, msg
             return
     out['code'], out['msg'] = 0, msg
