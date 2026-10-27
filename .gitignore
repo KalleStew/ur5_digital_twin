@@ -6,16 +6,12 @@ log/
 # Agent plans, logs, reports, scratch
 .agent/
 
-# Dynamic Simulation Data
+# Run data belongs in $UR5_DATA_DIR, outside the repository
 *.csv
 *.h5
 
-# Default Path Planning Data
-!/ur5_controller/src/waypoints/default_cartesian.csv
-!/ur5_controller/src/waypoints/default_joint.csv
-
-# Simuation Data Save Directory
-!/ur5_controller/src/data/
+# Shipped reference trajectories
+!/ur5_controller/waypoints/*.csv
 
 # Python
 __pycache__/

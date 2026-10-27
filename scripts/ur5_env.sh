@@ -167,8 +167,8 @@ ur5demo() {
   ur5env
   local out="${1:-presentation_demo}"
   echo "+ presentation demo → waypoints/demo_15s.csv (≈12 s motion + Candle reset)"
-  echo "+ python3 ${_UR5_REPO_ROOT}/ur5_controller/src/interactive_control.py --mode 1 --csv demo_15s.csv --out ${out}"
-  python3 "${_UR5_REPO_ROOT}/ur5_controller/src/interactive_control.py" \
+  echo "+ ros2 run ur5_controller interactive_control.py --mode 1 --csv demo_15s.csv --out ${out}"
+  ros2 run ur5_controller interactive_control.py \
     --mode 1 --csv demo_15s.csv --out "${out}"
 }
 
@@ -227,8 +227,8 @@ ur5plan() {
   echo "NOTICE (R5): Manual step remains — in RViz, Publish Point until ≥2 waypoints exist."
   echo "NOTICE (R5): Then in the planner CLI type: plan → export joints (no CLI goal-entry path)."
   echo "NOTICE: planner feedback is in /tmp/ur5_planner.log (tail -f it in another terminal)."
-  echo "+ python3 ${_UR5_REPO_ROOT}/ur5_controller/src/planner_cli.py"
-  python3 "${_UR5_REPO_ROOT}/ur5_controller/src/planner_cli.py" "$@" || true
+  echo "+ ros2 run ur5_controller planner_cli.py"
+  ros2 run ur5_controller planner_cli.py "$@" || true
   if [[ -n "${planner_pid}" ]]; then
     echo "+ stopping background multi_waypoint_planner"
     kill -TERM -- "-${planner_pid}" 2>/dev/null || true
@@ -249,8 +249,8 @@ ur5plan() {
 ur5run() {
   ur5env
   local csv="${1:-default_joint.csv}"
-  echo "+ python3 ${_UR5_REPO_ROOT}/ur5_controller/src/interactive_control.py --mode 1 --csv ${csv}"
-  python3 "${_UR5_REPO_ROOT}/ur5_controller/src/interactive_control.py" --mode 1 --csv "${csv}"
+  echo "+ ros2 run ur5_controller interactive_control.py --mode 1 --csv ${csv}"
+  ros2 run ur5_controller interactive_control.py --mode 1 --csv "${csv}"
 }
 
 _ur5run_complete() {
