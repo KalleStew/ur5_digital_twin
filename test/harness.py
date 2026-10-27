@@ -18,7 +18,6 @@ import signal
 import subprocess
 import sys
 import tempfile
-import threading
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -112,7 +111,7 @@ def wait_controllers(p, want: dict, timeout: float) -> dict | None:
 
 
 OPERATOR_SCRIPTS = {'interactive_control.py', 'preflight.py', 'switch_brain.py', 'planner_cli.py',
-                    'hold_candle.py', 'validate_h5.py'}
+                    'validate_h5.py'}
 
 
 def leaked_operator_processes() -> list[str]:

@@ -95,8 +95,8 @@ _ur5_pids() {
 ur5kill() {
   echo "+ stop operator clients, Gazebo, bridges, move_group, RViz, planner, spawners (rmw_zenohd stays)"
   local pat pids
-  for pat in 'interactive_control.py' 'planner_cli.py' 'preflight.py' 'switch_brain.py' 'hold_candle.py' \
-             'gz sim' 'gazebo_sim.launch.py' 'ur5_description/launch/sim.launch.py' 'planner.launch.py' \
+  for pat in 'interactive_control.py' 'planner_cli.py' 'preflight.py' 'switch_brain.py' \
+             'gz sim' 'bringup.launch.py' 'gazebo_sim.launch.py' 'ur5_description/launch/sim.launch.py' 'planner.launch.py' \
              'parameter_bridge' 'robot_state_publisher' 'move_group' 'rviz2' 'multi_waypoint_planner' \
              'controller_manager/spawner'; do
     pids="$(_ur5_pids "${pat}")"
@@ -120,16 +120,16 @@ _ur5_refuse_second_sim() {
 ur5sim() {
   ur5env || return
   _ur5_refuse_second_sim || return
-  echo "+ ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=true start_rviz:=false $*"
-  ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=true start_rviz:=false "$@"
+  echo "+ ros2 launch ur5_controller bringup.launch.py gz_headless:=true start_rviz:=false $*"
+  ros2 launch ur5_controller bringup.launch.py gz_headless:=true start_rviz:=false "$@"
 }
 
 ur5simgui() {
   ur5env || return
   _ur5_refuse_second_sim || return
   local engine="${GZ_SIM_RENDER_ENGINE:-ogre}"
-  echo "+ ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=false start_rviz:=true gz_render_engine:=${engine} $*"
-  ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=false start_rviz:=true \
+  echo "+ ros2 launch ur5_controller bringup.launch.py gz_headless:=false start_rviz:=true gz_render_engine:=${engine} $*"
+  ros2 launch ur5_controller bringup.launch.py gz_headless:=false start_rviz:=true \
     gz_render_engine:="${engine}" "$@"
 }
 
