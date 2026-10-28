@@ -3,7 +3,7 @@ import os
 import numpy as np
 import pytest
 
-from ur5_controller.controllers.base import load_controller
+from ur5_controller.control_laws import load_controller
 from ur5_controller.dynamics import Dynamics, NominalModel
 from ur5_controller.torque_control import KINDS, Perturbation
 from ur5_controller.robot import load_model, load_platform

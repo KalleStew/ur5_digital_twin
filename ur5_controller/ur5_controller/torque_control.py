@@ -1,6 +1,6 @@
 """Brain B scheme: atomic A->B handoff, joint-state-locked torque loop, watchdogs, B->A exit.
 
-Contains no control law; plug-ins in controllers/ compute tau. The loop runs once per
+Contains no control law; control_laws.py computes tau. The loop runs once per
 joint state sample, which StateCache delivers on an exact sim-time grid (topics.joint_states_rate_hz).
 """
 from __future__ import annotations
@@ -20,7 +20,7 @@ from rcl_interfaces.srv import GetParameters
 from std_msgs.msg import Float64MultiArray
 
 from .brain import Brains
-from .controllers.base import load_controller
+from .control_laws import load_controller
 from .dynamics import DEFAULT_COULOMB_EPSILON, DEFAULT_MODEL_TERMS, Dynamics, NominalModel
 from .preflight import Preflight
 from .robot import Model, StateCache, call_service
