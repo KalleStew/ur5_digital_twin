@@ -23,11 +23,11 @@ from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.signals import SignalHandlerOptions
 
-from ur5_controller.brain import Brains
+from ur5_controller.position_control import Brains
 from ur5_controller.position_control import PositionScheme, PositionSpec, load_spec
-from ur5_controller.preflight import Preflight
+from ur5_controller.position_control import Preflight
 from ur5_controller.robot import load_model, load_platform, resolve_file, state_cache
-from ur5_controller.scheme import (EXIT_INPUT, EXIT_INTERRUPTED, EXIT_OK, EXIT_PLATFORM, InputError,
+from ur5_controller.robot import (EXIT_INPUT, EXIT_INTERRUPTED, EXIT_OK, EXIT_PLATFORM, InputError,
                                    PlatformError, RunResult)
 from ur5_controller.telemetry import write_h5
 from ur5_controller.trajectory_io import data_dir, shipped_waypoints_dir

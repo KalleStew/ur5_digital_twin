@@ -4,7 +4,7 @@ import pytest
 
 from ur5_controller import trajectory_io as tio
 from ur5_controller.robot import load_model, load_platform
-from ur5_controller.scheme import InputError
+from ur5_controller.robot import InputError
 
 _MODEL = load_model(load_platform())
 J = _MODEL.joints

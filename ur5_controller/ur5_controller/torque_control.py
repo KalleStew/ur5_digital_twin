@@ -19,12 +19,12 @@ import yaml
 from rcl_interfaces.srv import GetParameters
 from std_msgs.msg import Float64MultiArray
 
-from .brain import Brains
+from .position_control import Brains
 from .control_laws import load_controller
 from .dynamics import DEFAULT_COULOMB_EPSILON, DEFAULT_MODEL_TERMS, Dynamics, NominalModel
-from .preflight import Preflight
+from .position_control import Preflight
 from .robot import Model, StateCache, call_service
-from .scheme import (EXIT_INTERRUPTED, EXIT_PLATFORM, EXIT_RUN_FAILED, EXIT_SAFETY,
+from .robot import (EXIT_INTERRUPTED, EXIT_PLATFORM, EXIT_RUN_FAILED, EXIT_SAFETY,
                      InputError, PlatformError, RunResult, Scheme)
 from .telemetry import (NYQUIST_RATIO_MAX, Recorder, nyquist_artefact, rejection, write_h5)
 from .trajectory_io import (MinJerkReference, check_name, data_dir, ensure_writable,

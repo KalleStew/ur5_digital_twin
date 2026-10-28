@@ -9,7 +9,7 @@ import re
 from dataclasses import dataclass
 
 from .robot import Model
-from .scheme import InputError
+from .robot import InputError
 
 CARTESIAN_HEADER = ('time_sec', 'x', 'y', 'z', 'roll', 'pitch', 'yaw')
 NAME_RE = re.compile(r'^[A-Za-z0-9][A-Za-z0-9_.-]{0,63}$')

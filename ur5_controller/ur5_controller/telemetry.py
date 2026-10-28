@@ -9,7 +9,7 @@ import subprocess
 
 import numpy as np
 
-from .scheme import InputError
+from .robot import InputError
 from .trajectory_io import check_name, data_dir, ensure_writable
 
 DATASETS = ('t', 'q', 'qd', 'tau_measured', 'tau_commanded', 'q_ref', 'qd_ref')

@@ -7,7 +7,7 @@ from ur5_controller.control_laws import load_controller
 from ur5_controller.dynamics import Dynamics, NominalModel
 from ur5_controller.torque_control import KINDS, Perturbation
 from ur5_controller.robot import load_model, load_platform
-from ur5_controller.scheme import InputError
+from ur5_controller.robot import InputError
 
 GAINS = {'kp': [300, 300, 600, 300, 50, 30, 10], 'kd': [10, 10, 40, 10, 0.5, 0.3, 0.1]}
 
@@ -199,7 +199,7 @@ class _Pre:
         self.calls, self.fail_at = 0, fail_at
 
     def run(self):
-        from ur5_controller.scheme import RunResult
+        from ur5_controller.robot import RunResult
         self.calls += 1
         return RunResult.fail(3, 'not at Candle') if self.calls == self.fail_at else RunResult.success()
 
@@ -209,7 +209,7 @@ def _runner(tmp_path, dyn, outcomes, pre):
     import logging
     import threading
 
-    from ur5_controller.scheme import RunResult
+    from ur5_controller.robot import RunResult
     from ur5_controller.torque_control import Experiment, TorqueScheme, Trial
     s = TorqueScheme.__new__(TorqueScheme)
     s.dyn, s.pre, s.abort_evt = dyn, pre, threading.Event()

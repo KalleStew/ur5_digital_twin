@@ -6,7 +6,7 @@ import os
 import numpy as np
 
 from .dynamics import NominalModel
-from .scheme import InputError
+from .robot import InputError
 from .trajectory_io import data_dir
 
 

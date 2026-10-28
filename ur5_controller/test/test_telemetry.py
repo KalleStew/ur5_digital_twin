@@ -7,7 +7,7 @@ import pytest
 
 from conftest import PKG
 from ur5_controller import telemetry
-from ur5_controller.scheme import InputError
+from ur5_controller.robot import InputError
 
 JOINTS = tuple(f'j{i}' for i in range(7))
 VALIDATE = os.path.join(PKG, 'scripts', 'validate_h5.py')

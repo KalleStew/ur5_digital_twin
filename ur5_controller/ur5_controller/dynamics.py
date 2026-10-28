@@ -123,7 +123,7 @@ class NominalModel:
 
     def __init__(self, dyn: Dynamics, terms=DEFAULT_MODEL_TERMS,
                  coulomb_epsilon=DEFAULT_COULOMB_EPSILON) -> None:
-        from .scheme import InputError
+        from .robot import InputError
         terms = tuple(str(t) for t in (terms or ()))
         unknown = [t for t in terms if t not in MODEL_TERMS]
         if unknown or len(set(terms)) != len(terms):
