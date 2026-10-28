@@ -18,7 +18,7 @@ ur_manipulator_controller:
     state_interfaces: ["position", "velocity"]
     gains:
       shoulder_pan_joint1:  {p: 4000.0, i: 20.0, d: 50.0, i_clamp: 10.0}
-      shoulder_pan_joint:   {p: 4000.0, i: 20.0, d: 50.0, i_clamp: 10.0}
+      shoulder_pan_joint:   {p: 4000.0, i: 150.0, d: 50.0, i_clamp: 30.0}
       shoulder_lift_joint:  {p: 8000.0, i: 200.0, d: 350.0, i_clamp: 250.0}
       elbow_joint:          {p: 5000.0, i: 150.0, d: 250.0, i_clamp: 200.0}
       wrist_1_joint:        {p: 1000.0, i: 1.0, d: 2.0, i_clamp: 1.0}

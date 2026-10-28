@@ -41,7 +41,7 @@ candle:
   max_error_rad: 0.005
   max_rms_velocity: 0.001
   settle_sec: 1.0
-  move_sec: 5.0
+  move_sec: 15.0
   goal_time_tolerance_sec: 5.0
   # Wall-clock give-up for one pre-flight attempt.
   timeout_sec: 90.0
