@@ -27,7 +27,7 @@ _ur5_die() {
 
 ur5env() {
   if [[ ! -f /opt/ros/jazzy/setup.bash ]]; then
-    _ur5_die 3 "/opt/ros/jazzy/setup.bash not found; install ROS 2 Jazzy (docs/setup.md)"; return
+    _ur5_die 3 "/opt/ros/jazzy/setup.bash not found; install ROS 2 Jazzy (docs/environment_setup.md)"; return
   fi
   set +u
   # shellcheck disable=SC1091

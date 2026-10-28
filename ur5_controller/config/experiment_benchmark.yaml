@@ -1,6 +1,6 @@
 # Full torque benchmark: 4 laws x 6 perturbation settings (none + 5 types x 3 levels) x 2 trajectories x 5 seeds.
 # Trial id: <trajectory>-<plugin>-<perturbation><level index>-s<seed>; select one with --trial.
-# learned_id needs $UR5_DATA_DIR/models/learned_id.npz (see docs/experiments.md); remove it to run without.
+# learned_id needs $UR5_DATA_DIR/models/learned_id.npz (see docs/development_workflow.md); remove it to run without.
 name: benchmark
 trajectories: [bench_reach.csv, bench_sweep.csv]
 # Joint terms pd_id_ff and computed_torque add to M, C, g, with values from the URDF <dynamics>:
@@ -32,7 +32,7 @@ perturbations:
     levels: [0]
   # Extra viscous friction b_p qd = level x URDF b x measured qd on the torque reaching the
   # proximal joints. Wrists and Coulomb are not perturbed (100 Hz loop stability, see
-  # docs/experiments.md). Checked at run start per controller: b_p T / m_eff <= 0.5 and
+  # docs/development_workflow.md). Checked at run start per controller: b_p T / m_eff <= 0.5 and
   # (Kd + b_p) T / m_eff <= 1.0, m_eff the smallest M_jj over Candle and both trajectories.
   - type: viscous_friction
     joints: [shoulder_pan_joint1, shoulder_pan_joint, shoulder_lift_joint, elbow_joint]

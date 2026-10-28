@@ -7,7 +7,15 @@ import pytest
 
 from conftest import REPO
 
-MD_ALLOWLIST = {'README.md', 'docs/setup.md', 'docs/experiments.md'}
+MD_ALLOWLIST = {
+    'README.md',
+    'docs/architecture.md',
+    'docs/environment_setup.md',
+    'docs/development_workflow.md',
+    'docs/operation_and_deployment.md',
+    'docs/troubleshooting_and_reset.md',
+    'docs/external_resources.md',
+}
 SOURCE_EXT = ('.py', '.sh', '.cpp', '.hpp', '.h', '.yaml', '.yml', '.xml', '.urdf', '.srdf',
               '.sdf', '.txt', '.cfg', '.toml')
 # MoveItConfigsBuilder loads these by file name from ur5_moveit_config/config/.

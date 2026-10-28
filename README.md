@@ -1,12 +1,83 @@
-# UR5 7-DOF digital twin
+# UR5 7-DOF Digital Twin & HIL Research Platform
 
-ROS 2 Jazzy, Gazebo Harmonic, and `rmw_zenoh_cpp` on Ubuntu 24.04. One arm, two controllers, one of them active at a time.
+A digital twin and hardware-in-the-loop platform for a custom 7-DOF UR5 arm. It runs on Ubuntu 24.04, ROS 2 Jazzy, Gazebo Harmonic, and `rmw_zenoh_cpp`.
 
-Brain A is the joint-trajectory controller. It runs shipped or user waypoint files and the MoveIt planner. Brain B is the torque benchmark: PD + gravity, PD + inverse-dynamics feedforward, computed torque, and a learned inverse-dynamics plug-in. Switching controllers is `ur5 brain` or the start of a torque trial. Resetting the arm is `ur5 candle`. That returns it to `candle_pose` under Brain A. It does not restart Gazebo.
+## System Overview
 
-`scripts/ur5` finds the workspace, sources Jazzy, sets `RMW_IMPLEMENTATION=rmw_zenoh_cpp`, and starts `rmw_zenohd` if it is not already running. User files go to `$UR5_DATA_DIR`, which defaults to `ur5_controller/src/data`.
+The arm has one kinematic brain and one torque brain. Only one of them commands the joints.
 
-Setup is [docs/setup.md](docs/setup.md). The torque benchmark is [docs/experiments.md](docs/experiments.md).
+1. **Kinematic trajectory planning.** `position_control.py` (Brain A) executes waypoint CSVs through `ur_manipulator_controller`. `multi_waypoint_planner` plans Cartesian paths in MoveIt and exports the CSV.
+2. **Torque control.** `torque_control.py` (Brain B) takes `forward_effort_controller` and runs PD + gravity, PD + inverse-dynamics feedforward, computed torque, or a learned inverse-dynamics plug-in.
+
+```text
+candle_pose (SRDF)
+        |
+        v
+gazebo_sim.launch.py --> joint_state_broadcaster
+                      --> ur_manipulator_controller     position_control.py
+                      --> forward_effort_controller     torque_control.py
+```
+
+A reset is `ur5 candle`. It switches to Brain A, moves to `candle_pose`, and checks the settle. It does not restart Gazebo.
+
+### Key Features
+
+* **Exclusive handoff.** `ur_manipulator_controller` and `forward_effort_controller` are never active together. The switch is one controller-manager call and the post-condition is checked.
+* **Two joint-state sources.** MoveIt keeps `/joint_states` from `joint_state_broadcaster`. Brain B and the HDF5 log read `/ur5/gz/joint_states` (the name is `topics.joint_states` in `platform.yaml`), decimated by stamp to 100 Hz.
+* **Telemetry.** Each run writes a raw N×7 HDF5 file with metadata. `ur5 validate` checks shape, time, rate, and the Nyquist artefact criterion.
+* **One starting pose.** `candle_pose` in the SRDF is the only pose number. Launch writes it into the URDF `initial_value` placeholders.
+
+## Repository Structure
+
+```text
+ur5_digital_twin/
+├── README.md
+├── docs/
+├── scripts/  ur5  ur5_env.sh  run_sim
+├── ur5_description/          URDF, meshes, empty world, sim.launch.py
+├── ur5_moveit_config/        SRDF, MoveIt and controller YAML, gazebo_sim.launch.py
+└── ur5_controller/
+    ├── config/               platform.yaml and experiment_*.yaml
+    ├── launch/planner.launch.py
+    ├── src/                  control code, waypoints/, data/
+    └── test/
+```
+
+`ur5_controller/src/` holds `interactive_control.py` (operator entry), `position_control.py` (Brain A), `torque_control.py` (Brain B), `control_laws.py`, `ur5_common.py`, `dynamics.py`, `telemetry.py`, and `planner_cli.py`, plus `multi_waypoint_planner.cpp`.
+
+## Quick Start
+
+From a workspace whose `src/` contains this repository, after [environment setup](docs/environment_setup.md):
+
+```bash
+cd ~/ros2_ws
+src/ur5_digital_twin/scripts/ur5 build
+# Stage 1. Headless Gazebo, MoveIt, arm upright at candle_pose.
+ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=true start_rviz:=false
+# same thing:
+src/ur5_digital_twin/scripts/ur5 sim
+```
+
+Stage 2, in a second terminal after `source install/setup.bash` (or another `ur5` command, which sources it):
+
+```bash
+ros2 launch ur5_controller planner.launch.py
+ros2 run ur5_controller planner_cli.py
+# same thing:
+ur5 planner
+```
+
+## Workflow
+
+| Stage | Plain command | Shortcut |
+|---|---|---|
+| 1 Bring-up | `ros2 launch ur5_moveit_config gazebo_sim.launch.py` | `ur5 simgui` / `ur5 sim` |
+| 2 Plan | `ros2 launch ur5_controller planner.launch.py` and `ros2 run ur5_controller planner_cli.py` | `ur5 planner` / `ur5 plan <name>` |
+| 3a Run | `ros2 run ur5_controller interactive_control.py --scheme position --csv <file>` | `ur5 run <file>` |
+| 3b Experiment | `ros2 run ur5_controller interactive_control.py --scheme torque --experiment <yaml>` | `ur5 torque <yaml>` |
+| 4 Reset / export | `ros2 run ur5_controller interactive_control.py --candle` and `ros2 run ur5_controller telemetry.py validate <path>` | `ur5 candle` / `ur5 validate` |
+
+`interactive_control.py` with no flags opens a menu: run waypoints, run experiment, return to Candle, switch brain, validate data, quit.
 
 Exit codes: 0 ok, 1 run failed, 2 input rejected, 3 platform not ready, 4 safety abort, 130 interrupted.
 
@@ -40,24 +111,11 @@ Exit codes: 0 ok, 1 run failed, 2 input rejected, 3 platform not ready, 4 safety
 | `ur5 hz` | Topic rate. Default topic is `/joint_states` |
 | `ur5 test` | Unit tests with `--unit`. Without it, the full sim acceptance run |
 
-## Walkthrough
+## Documentation Overview
 
-From a workspace whose `src/` contains this repository, and with ROS 2 Jazzy installed (see [docs/setup.md](docs/setup.md)):
-
-```bash
-cd ~/ros2_ws
-src/ur5_digital_twin/scripts/ur5 build
-src/ur5_digital_twin/scripts/ur5 sim
-src/ur5_digital_twin/scripts/ur5 candle
-src/ur5_digital_twin/scripts/ur5 demo
-src/ur5_digital_twin/scripts/ur5 kill
-```
-
-`ur5 run` with no file runs `default_joint.csv`. Add `--cartesian` for `default_cartesian.csv`. A torque slice that does not need learned weights:
-
-```bash
-src/ur5_digital_twin/scripts/ur5 sim
-src/ur5_digital_twin/scripts/ur5 torque slice_s10.yaml
-src/ur5_digital_twin/scripts/ur5 validate "$UR5_DATA_DIR"
-src/ur5_digital_twin/scripts/ur5 kill
-```
+1. [System Architecture](docs/architecture.md) — brains, topics, and which file does what.
+2. [Environment Setup](docs/environment_setup.md) — Ubuntu, Jazzy, Harmonic, Zenoh, and the workspace.
+3. [Operation & Deployment](docs/operation_and_deployment.md) — the four stages, terminal by terminal.
+4. [Development Workflow](docs/development_workflow.md) — branches, the torque laws, and the hardware roadmap.
+5. [Troubleshooting & Reset](docs/troubleshooting_and_reset.md) — kill, clean, Candle, and Zenoh.
+6. [External Resources](docs/external_resources.md) — upstream manuals.
