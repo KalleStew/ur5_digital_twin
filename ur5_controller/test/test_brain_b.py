@@ -5,7 +5,7 @@ import pytest
 
 from ur5_controller.controllers.base import load_controller
 from ur5_controller.dynamics import Dynamics, NominalModel
-from ur5_controller.perturbations import KINDS, Perturbation
+from ur5_controller.torque_control import KINDS, Perturbation
 from ur5_controller.robot import load_model, load_platform
 from ur5_controller.scheme import InputError
 
