@@ -3,7 +3,7 @@
 # previous orientation. Candle is a straight-arm singularity, so the first point sets an
 # orientation the arm can reach on a straight line from it.
 points:
-  - {xyz: [-0.304, 0.079, 1.727], rpy: [3.142, 1.100, 0.200]}
-  - {xyz: [-0.307, -0.043, 1.646], rpy: [2.710, 0.934, -0.020]}
-  - {xyz: [-0.426, -0.008, 1.545], rpy: [3.142, 0.800, 0.300]}
+  - {xyz: [-0.0916, 0.0277, 1.8011], rpy: [2.9235, 1.0896, 0.4011]}
+  - {xyz: [-0.2319, 0.3063, 1.8197], rpy: [-2.7275, 1.0696, -0.3404]}
+  - {xyz: [-0.0479, 0.1022, 1.8514], rpy: [2.4890, 1.5082, -0.3715]}
 return_home: true
