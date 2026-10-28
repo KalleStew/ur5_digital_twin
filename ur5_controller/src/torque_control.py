@@ -19,15 +19,15 @@ import yaml
 from rcl_interfaces.srv import GetParameters
 from std_msgs.msg import Float64MultiArray
 
-from .position_control import Brains
-from .control_laws import load_controller
-from .dynamics import DEFAULT_COULOMB_EPSILON, DEFAULT_MODEL_TERMS, Dynamics, NominalModel
-from .position_control import Preflight
-from .robot import Model, StateCache, call_service
-from .robot import (EXIT_INTERRUPTED, EXIT_PLATFORM, EXIT_RUN_FAILED, EXIT_SAFETY,
+from position_control import Brains
+from control_laws import load_controller
+from dynamics import DEFAULT_COULOMB_EPSILON, DEFAULT_MODEL_TERMS, Dynamics, NominalModel
+from position_control import Preflight
+from ur5_common import Model, StateCache, call_service
+from ur5_common import (EXIT_INTERRUPTED, EXIT_PLATFORM, EXIT_RUN_FAILED, EXIT_SAFETY,
                      InputError, PlatformError, RunResult, Scheme)
-from .telemetry import (NYQUIST_RATIO_MAX, Recorder, nyquist_artefact, rejection, write_h5)
-from .trajectory_io import (MinJerkReference, check_name, data_dir, ensure_writable,
+from telemetry import (NYQUIST_RATIO_MAX, Recorder, nyquist_artefact, rejection, write_h5)
+from ur5_common import (MinJerkReference, check_name, data_dir, ensure_writable,
                             load_joint_csv, resolve_waypoints, sha256)
 
 MAX_ATTEMPTS = 3
@@ -62,7 +62,7 @@ class Experiment:
 
 def load_experiment(path: str, trial: str | None = None, seed: int | None = None) -> Experiment:
     if not os.path.isfile(path):
-        from .robot import resolve_file
+        from ur5_common import resolve_file
         try:
             path = resolve_file('ur5_controller', os.path.join('config', 'experiments', path))
         except FileNotFoundError:

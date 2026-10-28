@@ -20,10 +20,10 @@ from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.signals import SignalHandlerOptions
 
-from ur5_controller.position_control import Brains
-from ur5_controller.position_control import Preflight
-from ur5_controller.robot import load_model, load_platform, state_cache
-from ur5_controller.robot import EXIT_INPUT, EXIT_PLATFORM, PlatformError, RunResult
+from position_control import Brains
+from position_control import Preflight
+from ur5_common import load_model, load_platform, state_cache
+from ur5_common import EXIT_INPUT, EXIT_PLATFORM, PlatformError, RunResult
 
 
 def main() -> int:
@@ -49,7 +49,7 @@ def main() -> int:
     scheme = None
 
     if brain == 'b':
-        from ur5_controller.torque_control import TorqueScheme
+        from torque_control import TorqueScheme
         scheme = TorqueScheme(node, cfg, model, state, brains, Preflight(node, cfg, model, state, brains))
 
     def work():
@@ -59,7 +59,7 @@ def main() -> int:
                 out['res'] = RunResult.success(
                     f'{cfg["brain_a"]["controller"]} active' + ('' if changed else ' (already)'))
             else:
-                from ur5_controller.torque_control import hold_under_b
+                from torque_control import hold_under_b
                 out['res'] = hold_under_b(scheme, args.sec)
         except PlatformError as e:
             out['res'] = RunResult.fail(EXIT_PLATFORM, str(e))

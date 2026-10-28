@@ -8,12 +8,14 @@ log/
 .cursor/
 .pytest_cache/
 
-# Run data belongs in $UR5_DATA_DIR, outside the repository
+# Run data lives in ur5_controller/src/data. The folder stays; its contents do not.
+ur5_controller/src/data/*
+!ur5_controller/src/data/.gitkeep
 *.csv
 *.h5
 
 # Shipped reference trajectories
-!/ur5_controller/waypoints/*.csv
+!/ur5_controller/src/waypoints/*.csv
 
 # Python
 __pycache__/

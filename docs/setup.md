@@ -2,7 +2,7 @@
 
 Ubuntu 24.04, ROS 2 Jazzy at `/opt/ros/jazzy`, Gazebo Harmonic, and MoveIt 2 for Jazzy. The dispatcher sets `RMW_IMPLEMENTATION=rmw_zenoh_cpp` on every command. Do not point the middleware at a different RMW to work around a fault. `ur5 zenoh` restarts the router.
 
-The repository belongs at `<workspace>/src/ur5_digital_twin`. The usual workspace is `~/ros2_ws`. `$UR5_DATA_DIR` defaults to `<workspace>/ur5_data` and holds telemetry, user waypoints, learned weights, rejected trials, and `ur5 doctor` reports. `ur5 clean` does not delete it.
+The repository belongs at `<workspace>/src/ur5_digital_twin`. The usual workspace is `~/ros2_ws`. `$UR5_DATA_DIR` defaults to `ur5_controller/src/data` and holds telemetry, user waypoints, learned weights, rejected trials, and `ur5 doctor` reports. `ur5 clean` does not delete it.
 
 ## Install and build
 

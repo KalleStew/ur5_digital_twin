@@ -21,12 +21,12 @@ from rclpy.action import ActionClient
 from sensor_msgs.msg import JointState
 from trajectory_msgs.msg import JointTrajectoryPoint
 
-from .robot import (Model, StateCache, call_service, max_abs_diff, reorder,
+from ur5_common import (Model, StateCache, call_service, max_abs_diff, reorder,
                     wait_future)
-from .robot import (EXIT_INTERRUPTED, EXIT_PLATFORM, EXIT_RUN_FAILED, InputError,
+from ur5_common import (EXIT_INTERRUPTED, EXIT_PLATFORM, EXIT_RUN_FAILED, InputError,
                      PlatformError, RunResult, Scheme)
-from .telemetry import Recorder, telemetry_path
-from .trajectory_io import (Waypoints, check_velocity, detect_kind, load_cartesian_csv,
+from telemetry import Recorder, telemetry_path
+from ur5_common import (Waypoints, check_velocity, detect_kind, load_cartesian_csv,
                             load_joint_csv, resolve_waypoints, rpy_to_quat, segment_samples, sha256)
 
 class Brains:

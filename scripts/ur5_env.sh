@@ -34,7 +34,7 @@ ur5env() {
   source /opt/ros/jazzy/setup.bash
   export RMW_IMPLEMENTATION=rmw_zenoh_cpp
   export ZENOH_ROUTER_CHECK_ATTEMPTS="${ZENOH_ROUTER_CHECK_ATTEMPTS:-20}"
-  export UR5_DATA_DIR="${UR5_DATA_DIR:-${_UR5_WS_ROOT}/ur5_data}"
+  export UR5_DATA_DIR="${UR5_DATA_DIR:-${_UR5_REPO_ROOT}/ur5_controller/src/data}"
   if [[ -f "${_UR5_WS_ROOT}/install/setup.bash" ]]; then
     # shellcheck disable=SC1091
     source "${_UR5_WS_ROOT}/install/setup.bash"
@@ -75,7 +75,7 @@ ur5build() {
 }
 
 ur5clean() {
-  echo "+ rm -rf ${_UR5_WS_ROOT}/{build,install,log}   # ${UR5_DATA_DIR:-${_UR5_WS_ROOT}/ur5_data} is kept"
+  echo "+ rm -rf ${_UR5_WS_ROOT}/{build,install,log}   # ${UR5_DATA_DIR:-${_UR5_REPO_ROOT}/ur5_controller/src/data} is kept"
   rm -rf "${_UR5_WS_ROOT}/build" "${_UR5_WS_ROOT}/install" "${_UR5_WS_ROOT}/log"
 }
 
@@ -176,7 +176,7 @@ ur5run() {
 
 _ur5_complete_csv() {
   local cur="${COMP_WORDS[COMP_CWORD]}" d files=""
-  for d in "${UR5_DATA_DIR:-${_UR5_WS_ROOT}/ur5_data}/waypoints" "${_UR5_REPO_ROOT}/ur5_controller/waypoints"; do
+  for d in "${UR5_DATA_DIR:-${_UR5_REPO_ROOT}/ur5_controller/src/data}/waypoints" "${_UR5_REPO_ROOT}/ur5_controller/src/waypoints"; do
     [[ -d "${d}" ]] && files+=" $(cd "${d}" && ls -1 -- *.csv 2>/dev/null)"
   done
   # shellcheck disable=SC2207

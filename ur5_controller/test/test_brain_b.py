@@ -3,11 +3,11 @@ import os
 import numpy as np
 import pytest
 
-from ur5_controller.control_laws import load_controller
-from ur5_controller.dynamics import Dynamics, NominalModel
-from ur5_controller.torque_control import KINDS, Perturbation
-from ur5_controller.robot import load_model, load_platform
-from ur5_controller.robot import InputError
+from control_laws import load_controller
+from dynamics import Dynamics, NominalModel
+from torque_control import KINDS, Perturbation
+from ur5_common import load_model, load_platform
+from ur5_common import InputError
 
 GAINS = {'kp': [300, 300, 600, 300, 50, 30, 10], 'kd': [10, 10, 40, 10, 0.5, 0.3, 0.1]}
 
@@ -97,14 +97,14 @@ EXPERIMENTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 
 @pytest.mark.parametrize('name', sorted(os.listdir(EXPERIMENTS)))
 def test_shipped_experiments_load(dyn, name):
-    from ur5_controller.torque_control import load_experiment
+    from torque_control import load_experiment
     exp = load_experiment(os.path.join(EXPERIMENTS, name))
     assert exp.trials and 'rigid_body' in NominalModel(dyn, exp.model_terms, exp.coulomb_epsilon).terms
 
 
 @pytest.mark.parametrize('name', sorted(os.listdir(EXPERIMENTS)))
 def test_shipped_friction_levels_within_bounds(model, dyn, name):
-    from ur5_controller.torque_control import load_experiment, worst_case_inertia
+    from torque_control import load_experiment, worst_case_inertia
     exp = load_experiment(os.path.join(EXPERIMENTS, name))
     trials = [t for t in exp.trials if t.perturbation == 'viscous_friction']
     if not trials:
@@ -199,7 +199,7 @@ class _Pre:
         self.calls, self.fail_at = 0, fail_at
 
     def run(self):
-        from ur5_controller.robot import RunResult
+        from ur5_common import RunResult
         self.calls += 1
         return RunResult.fail(3, 'not at Candle') if self.calls == self.fail_at else RunResult.success()
 
@@ -209,8 +209,8 @@ def _runner(tmp_path, dyn, outcomes, pre):
     import logging
     import threading
 
-    from ur5_controller.robot import RunResult
-    from ur5_controller.torque_control import Experiment, TorqueScheme, Trial
+    from ur5_common import RunResult
+    from torque_control import Experiment, TorqueScheme, Trial
     s = TorqueScheme.__new__(TorqueScheme)
     s.dyn, s.pre, s.abort_evt = dyn, pre, threading.Event()
     s.node = type('N', (), {'get_logger': staticmethod(lambda: logging.getLogger('t'))})()
@@ -235,7 +235,7 @@ def _runner(tmp_path, dyn, outcomes, pre):
 
 @pytest.fixture
 def accept_all(monkeypatch):
-    import ur5_controller.torque_control as tc
+    import torque_control as tc
     monkeypatch.setattr(tc, 'rejection', lambda path: '')
 
 
@@ -247,7 +247,7 @@ def test_runner_continues_after_failed_trial(tmp_path, dyn, accept_all):
 
 
 def test_runner_reruns_rejected_trials(tmp_path, dyn, monkeypatch):
-    import ur5_controller.torque_control as tc
+    import torque_control as tc
     monkeypatch.setenv('UR5_DATA_DIR', str(tmp_path / 'data'))
     verdicts = {'t1.2.h5': '1 gaps', 't2.4.h5': 'gap a', 't2.5.h5': 'gap b', 't2.6.h5': 'gap c'}
     monkeypatch.setattr(tc, 'rejection', lambda path: verdicts.get(os.path.basename(path), ''))

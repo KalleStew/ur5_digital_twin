@@ -12,7 +12,7 @@ import glob
 import os
 import sys
 
-from ur5_controller.telemetry import RATE_TOLERANCE, check
+from telemetry import RATE_TOLERANCE, check
 
 
 def main() -> int:

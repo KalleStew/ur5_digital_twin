@@ -4,7 +4,7 @@ ROS 2 Jazzy, Gazebo Harmonic, and `rmw_zenoh_cpp` on Ubuntu 24.04. One arm, two 
 
 Brain A is the joint-trajectory controller. It runs shipped or user waypoint files and the MoveIt planner. Brain B is the torque benchmark: PD + gravity, PD + inverse-dynamics feedforward, computed torque, and a learned inverse-dynamics plug-in. Switching controllers is `ur5 brain` or the start of a torque trial. Resetting the arm is `ur5 candle`. That returns it to `candle_pose` under Brain A. It does not restart Gazebo.
 
-`scripts/ur5` finds the workspace, sources Jazzy, sets `RMW_IMPLEMENTATION=rmw_zenoh_cpp`, and starts `rmw_zenohd` if it is not already running. User files go to `$UR5_DATA_DIR`, which defaults to `<workspace>/ur5_data`.
+`scripts/ur5` finds the workspace, sources Jazzy, sets `RMW_IMPLEMENTATION=rmw_zenoh_cpp`, and starts `rmw_zenohd` if it is not already running. User files go to `$UR5_DATA_DIR`, which defaults to `ur5_controller/src/data`.
 
 Setup is [docs/setup.md](docs/setup.md). The torque benchmark is [docs/experiments.md](docs/experiments.md).
 

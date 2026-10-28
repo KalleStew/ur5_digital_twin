@@ -2,9 +2,9 @@ import os
 
 import pytest
 
-from ur5_controller import trajectory_io as tio
-from ur5_controller.robot import load_model, load_platform
-from ur5_controller.robot import InputError
+import ur5_common as tio
+from ur5_common import load_model, load_platform
+from ur5_common import InputError
 
 _MODEL = load_model(load_platform())
 J = _MODEL.joints
@@ -67,6 +67,25 @@ def test_data_dir_env(monkeypatch, tmp_path):
     assert tio.data_dir() == str(tmp_path)
 
 
+def test_data_dir_default_is_source_data(monkeypatch):
+    monkeypatch.delenv('UR5_DATA_DIR', raising=False)
+    monkeypatch.setattr(tio, 'source_dir_marker', lambda: None)
+    assert tio.data_dir() == os.path.join(
+        os.path.dirname(os.path.dirname(os.path.realpath(tio.__file__))), 'src', 'data')
+
+
+def test_data_dir_plain_build_reads_source_dir_marker(monkeypatch, tmp_path):
+    monkeypatch.delenv('UR5_DATA_DIR', raising=False)
+    package = tmp_path / 'ur5_controller'
+    (package / 'src' / 'data').mkdir(parents=True)
+    marker = tmp_path / 'share' / 'source_dir'
+    marker.parent.mkdir()
+    marker.write_text(str(package) + '\n')
+    monkeypatch.setattr(tio, 'source_dir_marker', lambda: str(marker))
+    assert tio.data_dir() == str(package / 'src' / 'data')
+    assert 'install' not in tio.data_dir().split(os.sep)
+
+
 def test_ensure_writable_rejects(tmp_path):
     ro = tmp_path / 'ro'
     ro.mkdir()
@@ -80,7 +99,7 @@ def test_ensure_writable_rejects(tmp_path):
         os.chmod(ro, 0o700)
 
 
-WAYPOINTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'waypoints')
+WAYPOINTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src', 'waypoints')
 SHIPPED = sorted(f for f in os.listdir(WAYPOINTS) if f.endswith('.csv'))
 
 
@@ -102,7 +121,7 @@ def test_shipped_csv_loads(model, name):
 def test_example_points_file_loads():
     import importlib.util
     spec = importlib.util.spec_from_file_location(
-        'planner_cli', os.path.join(os.path.dirname(WAYPOINTS), 'scripts', 'planner_cli.py'))
+        'planner_cli', os.path.join(os.path.dirname(WAYPOINTS), 'planner_cli.py'))
     cli = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(cli)
     points, home = cli.load_points(os.path.join(WAYPOINTS, 'example.points.yaml'))

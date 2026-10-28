@@ -6,9 +6,9 @@ import xml.etree.ElementTree as ET
 import pytest
 
 from conftest import REPO
-from ur5_controller import robot
-from ur5_controller.dynamics import build_chain
-from ur5_controller.robot import chain_joints, inject_candle_urdf, load_model, load_platform, resolve_file, srdf_state
+import ur5_common as robot
+from dynamics import build_chain
+from ur5_common import chain_joints, inject_candle_urdf, load_model, load_platform, resolve_file, srdf_state
 
 import PyKDL as kdl
 

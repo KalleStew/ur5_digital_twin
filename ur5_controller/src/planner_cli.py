@@ -42,8 +42,8 @@ class InputError(Exception):
 
 def load_points(path: str):
     import yaml
-    from ur5_controller.robot import InputError as SchemeInputError
-    from ur5_controller.trajectory_io import resolve_waypoints
+    from ur5_common import InputError as SchemeInputError
+    from ur5_common import resolve_waypoints
     try:
         path = resolve_waypoints(path)
     except SchemeInputError as e:

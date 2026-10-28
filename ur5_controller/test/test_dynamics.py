@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from ur5_controller.dynamics import Dynamics
-from ur5_controller.robot import load_model, load_platform
+from dynamics import Dynamics
+from ur5_common import load_model, load_platform
 
 
 @pytest.fixture(scope='module')

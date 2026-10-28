@@ -6,11 +6,11 @@ import numpy as np
 import pytest
 
 from conftest import PKG
-from ur5_controller import telemetry
-from ur5_controller.robot import InputError
+import telemetry
+from ur5_common import InputError
 
 JOINTS = tuple(f'j{i}' for i in range(7))
-VALIDATE = os.path.join(PKG, 'scripts', 'validate_h5.py')
+VALIDATE = os.path.join(PKG, 'src', 'validate_h5.py')
 
 
 def meta(**kw):
@@ -74,8 +74,8 @@ def test_validator_missing_metadata(tmp_path):
 @pytest.fixture(scope='module')
 def clean_trace():
     """bench_reach reference at 100 Hz; measured qd = qd_ref + white noise, q lags q_ref."""
-    from ur5_controller.robot import load_model, load_platform
-    from ur5_controller.trajectory_io import MinJerkReference, load_joint_csv, resolve_waypoints
+    from ur5_common import load_model, load_platform
+    from ur5_common import MinJerkReference, load_joint_csv, resolve_waypoints
     model = load_model(load_platform())
     wps = load_joint_csv(resolve_waypoints('bench_reach.csv'), model, start=model.candle)
     ref = MinJerkReference(model.candle, wps.times, wps.values, hold_sec=1.0)
@@ -88,7 +88,7 @@ def clean_trace():
 
 def _inject(qd, target):
     """Add a (-1)^k tone on joint 0, scaled by bisection so its nyquist_ratio equals target."""
-    from ur5_controller.telemetry import nyquist_ratio
+    from telemetry import nyquist_ratio
     tone = (-1.0) ** np.arange(qd.shape[0])
     lo, hi = 0.0, 1e-4
     while nyquist_ratio(qd + np.outer(tone, np.eye(7)[0]) * hi, 100.0)[0] < target:
@@ -104,7 +104,7 @@ def _inject(qd, target):
 
 @pytest.mark.parametrize('target,valid', [(5.0, True), (8.0, True), (9.0, False), (14.0, False)])
 def test_validator_nyquist_positive_control(tmp_path, clean_trace, target, valid):
-    from ur5_controller.telemetry import nyquist_ratio
+    from telemetry import nyquist_ratio
     q, qd, q_ref, qd_ref = clean_trace
     assert nyquist_ratio(qd, 100.0).max() < 5.0
     qd = _inject(qd, target)
@@ -123,7 +123,7 @@ def test_validator_nyquist_positive_control(tmp_path, clean_trace, target, valid
 
 
 def test_nyquist_artefact_metadata():
-    from ur5_controller.telemetry import METHOD, nyquist_artefact
+    from telemetry import METHOD, nyquist_artefact
     assert nyquist_artefact(np.zeros((50, 7)), np.ones(7), 100.0) == {}
     qd = np.random.default_rng(1).normal(0.0, 1e-3, (400, 7))
     m = nyquist_artefact(qd, np.full(7, 0.01), 100.0)

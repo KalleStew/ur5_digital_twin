@@ -5,9 +5,9 @@ import os
 
 import numpy as np
 
-from .dynamics import NominalModel
-from .robot import InputError
-from .trajectory_io import data_dir
+from dynamics import NominalModel
+from ur5_common import InputError
+from ur5_common import data_dir
 
 
 class TorqueController:

@@ -14,10 +14,10 @@ from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.signals import SignalHandlerOptions
 
-from ur5_controller.position_control import Brains
-from ur5_controller.position_control import Preflight
-from ur5_controller.robot import load_model, load_platform, state_cache
-from ur5_controller.robot import EXIT_INTERRUPTED, EXIT_PLATFORM, PlatformError, RunResult
+from position_control import Brains
+from position_control import Preflight
+from ur5_common import load_model, load_platform, state_cache
+from ur5_common import EXIT_INTERRUPTED, EXIT_PLATFORM, PlatformError, RunResult
 
 
 def main() -> int:

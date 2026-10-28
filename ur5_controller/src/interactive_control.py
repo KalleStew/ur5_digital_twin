@@ -23,14 +23,14 @@ from rclpy.node import Node
 from rclpy.parameter import Parameter
 from rclpy.signals import SignalHandlerOptions
 
-from ur5_controller.position_control import Brains
-from ur5_controller.position_control import PositionScheme, PositionSpec, load_spec
-from ur5_controller.position_control import Preflight
-from ur5_controller.robot import load_model, load_platform, resolve_file, state_cache
-from ur5_controller.robot import (EXIT_INPUT, EXIT_INTERRUPTED, EXIT_OK, EXIT_PLATFORM, InputError,
+from position_control import Brains
+from position_control import PositionScheme, PositionSpec, load_spec
+from position_control import Preflight
+from ur5_common import load_model, load_platform, resolve_file, state_cache
+from ur5_common import (EXIT_INPUT, EXIT_INTERRUPTED, EXIT_OK, EXIT_PLATFORM, InputError,
                                    PlatformError, RunResult)
-from ur5_controller.telemetry import write_h5
-from ur5_controller.trajectory_io import data_dir, shipped_waypoints_dir
+from telemetry import write_h5
+from ur5_common import data_dir, shipped_waypoints_dir
 
 MODES = {'1': 'joint', '2': 'cartesian', 'joint': 'joint', 'cartesian': 'cartesian', '': ''}
 
@@ -54,7 +54,7 @@ class App:
     @property
     def torque(self):
         if self._torque is None:
-            from ur5_controller.torque_control import TorqueScheme
+            from torque_control import TorqueScheme
             self._torque = TorqueScheme(self.node, self.cfg, self.model, self.state, self.brains,
                                         self.pre)
         return self._torque
@@ -131,7 +131,7 @@ class App:
         return res
 
     def torque_stages(self, experiment, trial, seed, force) -> RunResult:
-        from ur5_controller.torque_control import load_experiment
+        from torque_control import load_experiment
         if not experiment:
             raise InputError('--experiment <file.yaml> is required for --scheme torque')
         exp = load_experiment(experiment, trial, seed)

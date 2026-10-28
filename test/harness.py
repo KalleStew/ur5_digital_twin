@@ -315,7 +315,7 @@ class Harness:
         return path
 
     def stage_collision(self) -> None:
-        files = sorted(glob.glob(os.path.join(REPO, 'ur5_controller', 'waypoints', '*.csv')))
+        files = sorted(glob.glob(os.path.join(REPO, 'ur5_controller', 'src', 'waypoints', '*.csv')))
         tracked = subprocess.run(['git', 'ls-files'], cwd=REPO, capture_output=True,
                                  text=True).stdout.split()
         demo = [f for f in tracked if f.endswith('demo_15s.csv')]
@@ -336,7 +336,7 @@ class Harness:
                        last_line(p.stdout + p.stderr))
 
     def stage_joint_run(self, p) -> None:
-        src = os.path.join(REPO, 'ur5_controller', 'waypoints', 'default_joint.csv')
+        src = os.path.join(REPO, 'ur5_controller', 'src', 'waypoints', 'default_joint.csv')
         if not os.path.exists(src):
             self.r.add('S5', 'joint CSV run', False, 'default_joint.csv missing')
             return
@@ -376,7 +376,7 @@ class Harness:
         self.settle_hold(p, 'after joint run + reset', 'S3c', 5.0)
 
     def stage_cartesian_run(self, p) -> None:
-        src = os.path.join(REPO, 'ur5_controller', 'waypoints', 'default_cartesian.csv')
+        src = os.path.join(REPO, 'ur5_controller', 'src', 'waypoints', 'default_cartesian.csv')
         if not os.path.exists(src):
             self.r.add('S5c', 'cartesian CSV run', False, 'default_cartesian.csv missing')
             return
