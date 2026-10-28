@@ -88,7 +88,7 @@ def clean_trace():
 
 def _inject(qd, target):
     """Add a (-1)^k tone on joint 0, scaled by bisection so its nyquist_ratio equals target."""
-    from ur5_controller.oscillation import nyquist_ratio
+    from ur5_controller.telemetry import nyquist_ratio
     tone = (-1.0) ** np.arange(qd.shape[0])
     lo, hi = 0.0, 1e-4
     while nyquist_ratio(qd + np.outer(tone, np.eye(7)[0]) * hi, 100.0)[0] < target:
@@ -104,7 +104,7 @@ def _inject(qd, target):
 
 @pytest.mark.parametrize('target,valid', [(5.0, True), (8.0, True), (9.0, False), (14.0, False)])
 def test_validator_nyquist_positive_control(tmp_path, clean_trace, target, valid):
-    from ur5_controller.oscillation import nyquist_ratio
+    from ur5_controller.telemetry import nyquist_ratio
     q, qd, q_ref, qd_ref = clean_trace
     assert nyquist_ratio(qd, 100.0).max() < 5.0
     qd = _inject(qd, target)
@@ -123,7 +123,7 @@ def test_validator_nyquist_positive_control(tmp_path, clean_trace, target, valid
 
 
 def test_nyquist_artefact_metadata():
-    from ur5_controller.oscillation import METHOD, nyquist_artefact
+    from ur5_controller.telemetry import METHOD, nyquist_artefact
     assert nyquist_artefact(np.zeros((50, 7)), np.ones(7), 100.0) == {}
     qd = np.random.default_rng(1).normal(0.0, 1e-3, (400, 7))
     m = nyquist_artefact(qd, np.full(7, 0.01), 100.0)

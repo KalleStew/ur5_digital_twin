@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Validate UR5 telemetry: shapes, monotonic sim time, rate within 2 %, gaps, NaN/inf, metadata,
-and for torque trials the sampling-artefact criterion (ur5_controller/oscillation.py).
+and for torque trials the sampling-artefact criterion.
 
   validate_h5.py <file.h5 | directory> [--tolerance 0.02]
 
@@ -12,7 +12,7 @@ import glob
 import os
 import sys
 
-from ur5_controller.validation import RATE_TOLERANCE, check
+from ur5_controller.telemetry import RATE_TOLERANCE, check
 
 
 def main() -> int:

@@ -22,16 +22,14 @@ from std_msgs.msg import Float64MultiArray
 from .brain import Brains
 from .controllers.base import load_controller
 from .dynamics import DEFAULT_COULOMB_EPSILON, DEFAULT_MODEL_TERMS, Dynamics, NominalModel
-from .oscillation import NYQUIST_RATIO_MAX, nyquist_artefact
 from .perturbations import Perturbation
 from .preflight import Preflight
 from .robot import Model, StateCache, call_service
 from .scheme import (EXIT_INTERRUPTED, EXIT_PLATFORM, EXIT_RUN_FAILED, EXIT_SAFETY,
                      InputError, PlatformError, RunResult, Scheme)
-from .telemetry import Recorder, write_h5
+from .telemetry import (NYQUIST_RATIO_MAX, Recorder, nyquist_artefact, rejection, write_h5)
 from .trajectory_io import (MinJerkReference, check_name, data_dir, ensure_writable,
                             load_joint_csv, resolve_waypoints, sha256)
-from .validation import rejection
 
 MAX_ATTEMPTS = 3
 
