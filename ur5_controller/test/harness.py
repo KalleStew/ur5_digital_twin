@@ -21,7 +21,7 @@ import tempfile
 import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-REPO = os.path.dirname(HERE)
+REPO = os.path.dirname(os.path.dirname(HERE))
 UR5 = os.path.join(REPO, 'scripts', 'ur5')
 sys.path.insert(0, HERE)
 

@@ -18,8 +18,7 @@ from rosgraph_msgs.msg import Clock
 from sensor_msgs.msg import JointState
 
 def _arm():
-    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    pkg = os.path.join(repo, 'ur5_controller', 'src')
+    pkg = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'src')
     if pkg not in sys.path:
         sys.path.insert(0, pkg)
     from ur5_common import load_model, load_platform

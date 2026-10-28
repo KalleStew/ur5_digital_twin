@@ -345,8 +345,8 @@ ur5test() {
     python3 -m pytest -q "${_UR5_REPO_ROOT}/ur5_controller/test"
     return
   fi
-  echo "+ python3 ${_UR5_REPO_ROOT}/test/harness.py $*"
-  python3 "${_UR5_REPO_ROOT}/test/harness.py" "$@"
+  echo "+ python3 ${_UR5_REPO_ROOT}/ur5_controller/test/harness.py $*"
+  python3 "${_UR5_REPO_ROOT}/ur5_controller/test/harness.py" "$@"
 }
 
 if [[ -z "${UR5_QUIET:-}" ]]; then
