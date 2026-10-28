@@ -10,12 +10,18 @@ from dataclasses import dataclass, field
 
 import yaml
 
-# Fallbacks only; tests assert these match the URDF chain, SRDF candle_pose and URDF initial_value.
-JOINTS = (
-    'shoulder_pan_joint1', 'shoulder_pan_joint', 'shoulder_lift_joint',
-    'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint',
-)
-CANDLE = (0.0, 0.0, -1.5708, 0.0, 0.0, 0.0, 0.0)
+
+def inject_candle_urdf(urdf_xml: str, values: dict[str, float]) -> str:
+    """Replace __CANDLE_<joint>__ placeholders with the SRDF candle_pose numbers."""
+    out = urdf_xml
+    for name, value in values.items():
+        token = f'__CANDLE_{name}__'
+        if token not in out:
+            raise KeyError(f'URDF missing {token}')
+        out = out.replace(token, f'{float(value):.10g}')
+    if '__CANDLE_' in out:
+        raise KeyError('URDF has a candle placeholder with no SRDF value')
+    return out
 
 
 def _share(package: str) -> str:
@@ -107,6 +113,13 @@ def load_model(cfg: dict | None = None) -> Model:
         limits[j.get('name')] = JointLimit(float(lim.get('lower')), float(lim.get('upper')),
                                            float(lim.get('velocity')), float(lim.get('effort')),
                                            float(lim.get('acceleration', 0.0)))
+    mv = cfg['moveit']
+    state = srdf_state(resolve_file(mv['srdf_package'], mv['srdf_file']), mv['candle_state'])
+    missing = [j for j in joints if j not in state]
+    if missing:
+        raise KeyError(f'candle_pose missing joints {missing}')
+    xml = inject_candle_urdf(xml, {j: state[j] for j in joints})
+    root = ET.fromstring(xml)
     initial = {}
     for rj in root.iter('joint'):
         if rj.find('state_interface') is None:
@@ -114,13 +127,8 @@ def load_model(cfg: dict | None = None) -> Model:
         for si in rj.findall('state_interface'):
             if si.get('name') == 'position':
                 p = si.find("param[@name='initial_value']")
-                if p is not None:
+                if p is not None and p.text:
                     initial[rj.get('name')] = float(p.text)
-    mv = cfg['moveit']
-    state = srdf_state(resolve_file(mv['srdf_package'], mv['srdf_file']), mv['candle_state'])
-    missing = [j for j in joints if j not in state]
-    if missing:
-        raise KeyError(f'candle_pose missing joints {missing}')
     return Model(joints, limits, initial, tuple(state[j] for j in joints), urdf_path, xml)
 
 

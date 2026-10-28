@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import math
+import os
+import sys
 import threading
 import time
 
@@ -15,10 +17,18 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
 from rosgraph_msgs.msg import Clock
 from sensor_msgs.msg import JointState
 
-JOINTS = [
-    'shoulder_pan_joint1', 'shoulder_pan_joint', 'shoulder_lift_joint',
-    'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint',
-]
+def _arm():
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pkg = os.path.join(repo, 'ur5_controller')
+    if pkg not in sys.path:
+        sys.path.insert(0, pkg)
+    from ur5_controller.robot import load_model, load_platform
+    return load_model(load_platform())
+
+
+_MODEL = _arm()
+JOINTS = list(_MODEL.joints)
+CANDLE = list(_MODEL.candle)
 
 
 def stamp_to_sec(stamp: TimeMsg) -> float:

@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import csv
 import math
+import os
 import sys
 import threading
 import time
@@ -21,11 +22,18 @@ from rclpy.node import Node
 from rclpy.parameter import Parameter
 from sensor_msgs.msg import JointState
 
-JOINTS = [
-    'shoulder_pan_joint1', 'shoulder_pan_joint', 'shoulder_lift_joint',
-    'elbow_joint', 'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint',
-]
-CANDLE = [0.0, 0.0, -1.5708, 0.0, 0.0, 0.0, 0.0]
+def _arm():
+    repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pkg = os.path.join(repo, 'ur5_controller')
+    if pkg not in sys.path:
+        sys.path.insert(0, pkg)
+    from ur5_controller.robot import load_model, load_platform
+    return load_model(load_platform())
+
+
+_MODEL = _arm()
+JOINTS = list(_MODEL.joints)
+CANDLE = list(_MODEL.candle)
 STEP = 0.02
 
 

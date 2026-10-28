@@ -25,9 +25,7 @@ REPO = os.path.dirname(HERE)
 UR5 = os.path.join(REPO, 'scripts', 'ur5')
 sys.path.insert(0, HERE)
 
-from probe import JOINTS, ProbeRunner, hold_stats  # noqa: E402
-
-CANDLE = [0.0, 0.0, -1.5708, 0.0, 0.0, 0.0, 0.0]
+from probe import CANDLE, JOINTS, ProbeRunner, hold_stats  # noqa: E402
 HOLD_MAX_ERR = 0.005
 HOLD_RMS_QD = 1e-3
 SPAWN_MAX_ERR = 0.01
@@ -393,17 +391,17 @@ class Harness:
 
     def stage_edge_csv(self, p) -> None:
         hdr = 'time_sec,' + ','.join(JOINTS) + '\n'
-        good = '2.0,0,0,-1.5708,0,0,0,0\n'
+        good = '2.0,0,0,0.4,0,0,0,0\n'
         cases = {
             'missing': None,
             'empty': '',
             'header_only': hdr,
-            'wrong_columns': hdr + '2.0,0,0,-1.5708,0,0\n',
-            'non_monotonic_time': hdr + '4.0,0,0,-1.5708,0,0,0,0\n' + good,
+            'wrong_columns': hdr + '2.0,0,0,0.4,0,0\n',
+            'non_monotonic_time': hdr + '4.0,0,0,0.4,0,0,0,0\n' + good,
             'zero_first_time': hdr + '0.0,0,0,-1.4,0,0,0,0\n',
             'nan_value': hdr + '2.0,0,0,nan,0,0,0,0\n',
-            'beyond_joint_limit': hdr + '3.0,0,0,-1.5708,3.5,0,0,0\n',
-            'collides_with_table': hdr + '4.0,0,0,0,0,0,0,0\n',
+            'beyond_joint_limit': hdr + '3.0,0,0,0.4,3.5,0,0,0\n',
+            'collides_with_table': hdr + '4.0,0,0,-1.4,0,0,0,0\n',
         }
         for name, text in cases.items():
             path = os.path.join(self.work, f'edge_{name}.csv')

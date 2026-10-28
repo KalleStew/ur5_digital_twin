@@ -45,6 +45,22 @@ def sources():
                 yield p, t
 
 
+POSE_LITERAL = re.compile(r'-1\.5708')
+JOINT_LIST_LITERAL = re.compile(
+    r"shoulder_pan_joint1['\"],\s*['\"]shoulder_pan_joint['\"],\s*['\"]shoulder_lift_joint['\"],\s*"
+    r"['\"]elbow_joint['\"],\s*['\"]wrist_1_joint['\"],\s*['\"]wrist_2_joint['\"],\s*['\"]wrist_3_joint")
+
+
+def test_no_candle_or_joint_list_literals():
+    bad = []
+    for p, t in sources():
+        if not p.endswith('.py'):
+            continue
+        if POSE_LITERAL.search(t) or JOINT_LIST_LITERAL.search(t):
+            bad.append(p)
+    assert bad == []
+
+
 def test_markdown_allowlist():
     md = [p for p in tracked() if p.lower().endswith('.md')]
     assert sorted(set(md) - MD_ALLOWLIST) == []

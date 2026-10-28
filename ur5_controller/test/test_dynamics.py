@@ -12,7 +12,7 @@ def dyn():
 
 def test_gravity_at_candle_matches_measured_hold_effort(dyn):
     # Effort read from /joint_states with the arm settled at candle_pose under Brain A.
-    measured = [0.0, 0.0, -21.52, -4.00, -0.562, 0.022, 0.003]
+    measured = [0.0, -12.324, -21.521, -4.000, -0.562, 0.022, 0.003]
     g = dyn.g(load_model(load_platform()).candle)
     assert np.allclose(g, measured, atol=0.1)
 

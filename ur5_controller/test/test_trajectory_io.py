@@ -6,14 +6,14 @@ from ur5_controller import trajectory_io as tio
 from ur5_controller.robot import load_model, load_platform
 from ur5_controller.scheme import InputError
 
-J = ('shoulder_pan_joint1', 'shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
-     'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint')
+_MODEL = load_model(load_platform())
+J = _MODEL.joints
 HDR = 'time_sec,' + ','.join(J) + '\n'
 
 
 @pytest.fixture(scope='module')
 def model():
-    return load_model(load_platform())
+    return _MODEL
 
 
 def write(tmp_path, name, text):
@@ -25,15 +25,15 @@ def write(tmp_path, name, text):
 @pytest.mark.parametrize('name,text,msg', [
     ('empty', '', 'empty'),
     ('header_only', HDR, 'no waypoints'),
-    ('wrong_columns', HDR + '2.0,0,0,-1.5708,0,0\n', 'columns'),
+    ('wrong_columns', HDR + '2.0,0,0,0.4,0,0\n', 'columns'),
     ('bad_header', 'time_sec,a,b,c,d,e,f,g\n2,0,0,0,0,0,0,0\n', 'exactly the 7 joints'),
-    ('dup_header', 'time_sec,' + ','.join(J[:6] + (J[0],)) + '\n2,0,0,-1.5708,0,0,0,0\n', 'exactly'),
-    ('non_monotonic', HDR + '4.0,0,0,-1.5708,0,0,0,0\n2.0,0,0,-1.5708,0,0,0,0\n', 'not after'),
+    ('dup_header', 'time_sec,' + ','.join(J[:6] + (J[0],)) + '\n2,0,0,0.4,0,0,0,0\n', 'exactly'),
+    ('non_monotonic', HDR + '4.0,0,0,0.4,0,0,0,0\n2.0,0,0,0.4,0,0,0,0\n', 'not after'),
     ('zero_first_time', HDR + '0.0,0,0,-1.4,0,0,0,0\n', 'must be > 0'),
     ('nan', HDR + '2.0,0,0,nan,0,0,0,0\n', 'NaN'),
     ('text', HDR + '2.0,0,0,abc,0,0,0,0\n', 'non-numeric'),
-    ('beyond_limit', HDR + '3.0,0,0,-1.5708,3.5,0,0,0\n', 'outside'),
-    ('too_fast', HDR + '0.5,0,0,0.0,0,0,0,0\n', 'rad/s'),
+    ('beyond_limit', HDR + '3.0,0,0,0.4,3.5,0,0,0\n', 'outside'),
+    ('too_fast', HDR + '0.2,0,0,1.5,0,0,0,0\n', 'rad/s'),
 ])
 def test_joint_csv_rejections(tmp_path, model, name, text, msg):
     p = write(tmp_path, f'{name}.csv', text)

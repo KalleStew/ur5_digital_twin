@@ -15,6 +15,28 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
+def inject_candle_urdf(urdf_xml: str, values: dict) -> str:
+    """Replace __CANDLE_<joint>__ with candle_pose. Same rule as ur5_controller.robot."""
+    out = urdf_xml
+    for name, value in values.items():
+        token = f'__CANDLE_{name}__'
+        if token not in out:
+            raise KeyError(f'URDF missing {token}')
+        out = out.replace(token, f'{float(value):.10g}')
+    if '__CANDLE_' in out:
+        raise KeyError('URDF has a candle placeholder with no SRDF value')
+    return out
+
+
+def candle_values(srdf_path: str) -> dict:
+    import xml.etree.ElementTree as ET
+    root = ET.parse(srdf_path).getroot()
+    for gs in root.findall('group_state'):
+        if gs.get('name') == 'candle_pose':
+            return {j.get('name'): float(j.get('value')) for j in gs.findall('joint')}
+    raise KeyError(f'group_state candle_pose not in {srdf_path}')
+
+
 def _build_gz_sim(context, *args, **kwargs):
     """Compose gz_args at runtime: optional -s and --render-engine, then -r world."""
     pkg_share = get_package_share_directory('ur5_description')
@@ -59,8 +81,16 @@ def generate_launch_description():
         'ros2_controllers.yaml',
     )
 
+    srdf_file = os.path.join(
+        get_package_share_directory('ur5_moveit_config'),
+        'config',
+        'ur57_arm.srdf',
+    )
     with open(urdf_file, 'r') as infp:
-        robot_desc = infp.read().replace('__ROS2_CONTROLLERS_YAML__', controller_yaml)
+        robot_desc = inject_candle_urdf(
+            infp.read().replace('__ROS2_CONTROLLERS_YAML__', controller_yaml),
+            candle_values(srdf_file),
+        )
 
     workspace_share_dir = os.path.join(pkg_share, '..')
     env_gz = AppendEnvironmentVariable('GZ_SIM_RESOURCE_PATH', workspace_share_dir)
