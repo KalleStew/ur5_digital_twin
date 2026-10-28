@@ -91,21 +91,25 @@ def test_pd_gravity_is_gravity_only(model, dyn):
     assert meta['model_terms'] == ['rigid_body', 'viscous', 'coulomb']
 
 
-EXPERIMENTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-                           'config', 'experiments')
+SHIPPED_EXPERIMENTS = (
+    'experiment_nominal_check.yaml',
+    'experiment_slice.yaml',
+    'experiment_benchmark.yaml',
+)
+CONFIG = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'config')
 
 
-@pytest.mark.parametrize('name', sorted(os.listdir(EXPERIMENTS)))
+@pytest.mark.parametrize('name', SHIPPED_EXPERIMENTS)
 def test_shipped_experiments_load(dyn, name):
     from torque_control import load_experiment
-    exp = load_experiment(os.path.join(EXPERIMENTS, name))
+    exp = load_experiment(os.path.join(CONFIG, name))
     assert exp.trials and 'rigid_body' in NominalModel(dyn, exp.model_terms, exp.coulomb_epsilon).terms
 
 
-@pytest.mark.parametrize('name', sorted(os.listdir(EXPERIMENTS)))
+@pytest.mark.parametrize('name', SHIPPED_EXPERIMENTS)
 def test_shipped_friction_levels_within_bounds(model, dyn, name):
     from torque_control import load_experiment, worst_case_inertia
-    exp = load_experiment(os.path.join(EXPERIMENTS, name))
+    exp = load_experiment(os.path.join(CONFIG, name))
     trials = [t for t in exp.trials if t.perturbation == 'viscous_friction']
     if not trials:
         return
@@ -119,11 +123,11 @@ def test_shipped_friction_levels_within_bounds(model, dyn, name):
         assert not any(p.metadata()['b_p'][4:])
 
 
-@pytest.mark.parametrize('name', sorted(os.listdir(EXPERIMENTS)))
+@pytest.mark.parametrize('name', SHIPPED_EXPERIMENTS)
 def test_shipped_gains_follow_pd_gravity(name):
     """Joint-space feedback gains are the PD + gravity values; CT converts them by protocol."""
     import yaml
-    with open(os.path.join(EXPERIMENTS, name)) as f:
+    with open(os.path.join(CONFIG, name)) as f:
         ctrls = {c['plugin']: c.get('gains', {}) for c in yaml.safe_load(f)['controllers']}
     ref = ctrls['pd_gravity']
     for plugin, g in ctrls.items():

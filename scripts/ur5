@@ -17,38 +17,34 @@ case "${cmd}" in
 Usage: ur5 <command> [args]
 Exit codes: 0 ok, 1 run failed, 2 input rejected, 3 platform not ready, 4 safety abort, 130 interrupted.
 
-Setup
+Workflow (stages 1-4)
+  ur5 sim                        stage 1 headless: ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=true start_rviz:=false
+  ur5 simgui                     stage 1 GUI: ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=false start_rviz:=true
+  ur5 run_sim                    same as simgui
+  ur5 planner                    stage 2: ros2 launch ur5_controller planner.launch.py and ros2 run ur5_controller planner_cli.py
+  ur5 plan <name> [--points file.points.yaml] [--force]
+                                 stage 2 plan and export a CSV
+  ur5 run [csv] [--cartesian] [--out name] [--force]
+                                 stage 3a: ros2 run ur5_controller interactive_control.py --scheme position --csv <file>
+  ur5 demo                       run demo_15s.csv
+  ur5 torque <experiment.yaml> [--trial id] [--seed n]
+                                 stage 3b: ros2 run ur5_controller interactive_control.py --scheme torque --experiment <yaml>
+  ur5 brain a|b [--sec N]        switch control authority; b holds the pose with PD + gravity
+  ur5 candle                     stage 4: ros2 run ur5_controller interactive_control.py --candle
+  ur5 reset                      same as candle
+  ur5 validate <file.h5|dir>     stage 4: ros2 run ur5_controller telemetry.py validate <path>
+
+Session
   ur5 setup                      add scripts/ to PATH in ~/.bashrc
   ur5 build [pkg...]             colcon build --symlink-install
   ur5 clean                      remove build/ install/ log/ (keeps $UR5_DATA_DIR)
-  ur5 doctor                     environment report, saved under $UR5_DATA_DIR/doctor
   ur5 zenoh                      restart the rmw_zenohd router
-
-Simulation
-  ur5 sim                        headless Gazebo + MoveIt (one at a time)
-  ur5 simgui                     Gazebo GUI + RViz
-  ur5 run_sim                    same as simgui
   ur5 kill                       stop Gazebo, bridges, move_group, RViz
 
-Brain A (position)
-  ur5 candle                     pre-flight: Brain A, move to candle_pose, verify settle
-  ur5 reset                      same as candle
-  ur5 run [csv] [--cartesian] [--out name] [--force]
-                                 execute a waypoint CSV, record HDF5, return to Candle
-  ur5 demo                       run demo_15s.csv
-  ur5 plan <name> [--points file.points.yaml] [--force]
-                                 plan through task-space points, export $UR5_DATA_DIR/waypoints/<name>.csv
-  ur5 planner [--export name]    interactive planner menu in a terminal (RViz Publish Point in simgui)
-  ur5 brain a|b [--sec N]        switch control authority; b holds the pose with PD + gravity
-
-Brain B (torque)
-  ur5 torque <experiment.yaml> [--trial id] [--seed n]
-                                 run benchmark trials, one HDF5 per trial
-
-Data and diagnostics
+Diagnostics
+  ur5 doctor                     environment report, saved under $UR5_DATA_DIR/doctor
   ur5 data                       show $UR5_DATA_DIR and file counts
   ur5 wp                         list shipped and user waypoint files
-  ur5 validate <file.h5|dir>     check telemetry shape, rate, timestamps, metadata
   ur5 ctl                        ros2 control list_controllers
   ur5 iface                      ros2 control list_hardware_interfaces
   ur5 states                     one /joint_states message

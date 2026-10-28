@@ -10,7 +10,7 @@ import telemetry
 from ur5_common import InputError
 
 JOINTS = tuple(f'j{i}' for i in range(7))
-VALIDATE = os.path.join(PKG, 'src', 'validate_h5.py')
+VALIDATE = os.path.join(PKG, 'src', 'telemetry.py')
 
 
 def meta(**kw):

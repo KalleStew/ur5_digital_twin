@@ -1,6 +1,6 @@
-# Acceptance slice (S10): 2 controllers x 2 gain-loss levels x 2 seeds on one trajectory = 8 trials.
-# Runs unattended on one Gazebo process: ur5 torque slice_s10.yaml
-name: slice_s10
+# Acceptance slice: 2 controllers x 2 gain-loss levels x 2 seeds on one trajectory = 8 trials.
+# Runs unattended on one Gazebo process: ur5 torque experiment_slice.yaml
+name: slice
 trajectories: [bench_reach.csv]
 model_terms: [rigid_body, viscous, coulomb]
 coulomb_epsilon: 0.05

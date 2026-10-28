@@ -52,9 +52,6 @@ install(PROGRAMS
   src/telemetry.py
   src/interactive_control.py
   src/planner_cli.py
-  src/preflight.py
-  src/switch_brain.py
-  src/validate_h5.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

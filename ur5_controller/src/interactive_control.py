@@ -74,7 +74,14 @@ class App:
     def main(self) -> None:
         try:
             a = self.args
-            if a.scheme is None and not (a.csv or a.mode or a.experiment):
+            if a.candle or a.wait_for_bringup > 0:
+                if a.wait_for_bringup > 0:
+                    self.brains.wait_ready(a.wait_for_bringup)
+                self.result = self.pre.run()
+                self.node.get_logger().info(self.result.reason)
+            elif a.brain:
+                self.result = self.switch_brain(a.brain, a.sec)
+            elif a.scheme is None and not (a.csv or a.mode or a.experiment):
                 self.result = self.menu()
             elif (a.scheme or ('torque' if a.experiment else 'position')) == 'torque':
                 self.result = self.torque_stages(a.experiment, a.trial, a.seed, a.force)
@@ -87,14 +94,37 @@ class App:
             self.result = RunResult.fail(EXIT_INPUT, 'no input on stdin; pass --csv or --experiment')
 
     def menu(self) -> RunResult:
-        print('UR5 digital twin\n  [1] position (Brain A, waypoint CSV)\n  [2] torque (Brain B, experiment YAML)')
-        scheme = self.prompt('Scheme [1]: ') or '1'
-        if scheme == '2':
-            exps = sorted(glob.glob(os.path.join(resolve_file('ur5_controller', 'config/experiments'), '*.yaml')))
+        print('\n'.join([
+            'UR5 digital twin',
+            '  [1] Run waypoints (Brain A)',
+            '  [2] Run experiment (Brain B)',
+            '  [3] Return to Candle',
+            '  [4] Switch brain',
+            '  [5] Validate data',
+            '  [6] Quit',
+        ]))
+        choice = self.prompt('Choice [1]: ') or '1'
+        if choice == '6':
+            return RunResult.success('quit')
+        if choice == '3':
+            return self.pre.run()
+        if choice == '4':
+            brain = self.prompt('Brain a or b: ').lower()
+            sec = self.prompt('Brain B hold seconds (Enter to hold until Ctrl-C): ')
+            return self.switch_brain(brain, float(sec) if sec else None)
+        if choice == '5':
+            path = self.prompt('HDF5 file or directory: ')
+            from telemetry import main as validate_main
+            code = validate_main([path])
+            return RunResult.success('validated') if code == 0 else RunResult.fail(code, 'validation failed')
+        if choice == '2':
+            exps = sorted(glob.glob(os.path.join(resolve_file('ur5_controller', 'config'), 'experiment_*.yaml')))
             print('Experiments: ' + ', '.join(os.path.basename(e) for e in exps))
             exp = self.prompt('Experiment file: ')
             trial = self.prompt('Trial id (Enter for all): ') or None
             return self.torque_stages(exp, trial, None, False)
+        if choice != '1':
+            raise InputError('choice must be 1, 2, 3, 4, 5, or 6')
         mode = MODES.get(self.prompt('Mode [1] joint  [2] cartesian (Enter for joint): ') or '1')
         if mode is None:
             raise InputError('mode must be 1 or 2')
@@ -108,6 +138,17 @@ class App:
         loaded = self.position.load(spec)
         self.prompt('Press Enter to run pre-flight and execute ')
         return self.position_stages(spec, loaded)
+
+    def switch_brain(self, brain: str, sec) -> RunResult:
+        brain = (brain or '').lower()
+        if brain not in ('a', 'b'):
+            raise InputError('brain must be a or b')
+        if brain == 'a':
+            changed = self.brains.switch_to('a')
+            return RunResult.success(
+                f'{self.cfg["brain_a"]["controller"]} active' + ('' if changed else ' (already)'))
+        from torque_control import hold_under_b
+        return hold_under_b(self.torque, sec)
 
     def position_stages(self, spec: PositionSpec, loaded=None) -> RunResult:
         self.active = self.position
@@ -150,6 +191,11 @@ def main(argv=None) -> int:
     ap.add_argument('--trial', default=None)
     ap.add_argument('--seed', type=int, default=None)
     ap.add_argument('--force', action='store_true', help='overwrite an existing --out file')
+    ap.add_argument('--candle', action='store_true', help='Brain A, move to candle_pose, verify the settle')
+    ap.add_argument('--brain', default='', help='a or b: switch control authority')
+    ap.add_argument('--sec', type=float, default=None, help='Brain B hold duration in sim seconds')
+    ap.add_argument('--wait-for-bringup', type=float, default=0.0, metavar='SEC',
+                    help='wait this long for controllers before --candle')
     args, ros_args = ap.parse_known_args(argv)
     if args.scheme == 'torque' and (args.csv or args.mode):
         print('--csv/--mode belong to --scheme position', file=sys.stderr)

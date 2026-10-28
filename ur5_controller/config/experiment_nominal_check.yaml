@@ -1,6 +1,6 @@
 # Nominal sanity check before the full matrix: each model-based law on both trajectories, no
 # perturbation, one seed. Expect computed_torque and pd_id_ff tracking error <= pd_gravity.
-# Run: ur5 torque nominal_check.yaml
+# Run: ur5 torque experiment_nominal_check.yaml
 name: nominal_check
 trajectories: [bench_reach.csv, bench_sweep.csv]
 # Joint terms pd_id_ff and computed_torque add to M, C, g, with values from the URDF <dynamics>:

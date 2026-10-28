@@ -2,7 +2,7 @@ import os
 
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, TimerAction, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, IncludeLaunchDescription, LogInfo, OpaqueFunction, TimerAction, SetEnvironmentVariable
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
@@ -47,6 +47,26 @@ def generate_launch_description():
         default_value='true',
         description='Launch MoveIt RViz. Default true (matches original GUI bring-up); set false for headless.',
     )
+    run_preflight_arg = DeclareLaunchArgument(
+        'run_preflight',
+        default_value='true',
+        description='After controllers start, move the arm to candle_pose and check the settle.',
+    )
+
+    def _preflight(context, *args, **kwargs):
+        flag = LaunchConfiguration('run_preflight').perform(context).lower()
+        if flag not in ('true', '1', 'yes'):
+            return []
+        try:
+            get_package_share_directory('ur5_controller')
+        except Exception:
+            return [LogInfo(msg='ERROR: ur5_controller not found; Candle pre-flight was not started')]
+        return [Node(
+            package='ur5_controller',
+            executable='interactive_control.py',
+            arguments=['--candle', '--wait-for-bringup', '120'],
+            output='screen',
+        )]
 
     set_rmw = SetEnvironmentVariable(
         name='RMW_IMPLEMENTATION',
@@ -123,9 +143,11 @@ def generate_launch_description():
         gz_headless_arg,
         gz_render_engine_arg,
         start_rviz_arg,
+        run_preflight_arg,
         zenoh_router,
         delayed_sim_launch,
         move_group_launch,
         rviz_launch,
-        clock_bridge
+        clock_bridge,
+        OpaqueFunction(function=_preflight),
     ])

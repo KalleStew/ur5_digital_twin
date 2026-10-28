@@ -108,8 +108,7 @@ def wait_controllers(p, want: dict, timeout: float) -> dict | None:
     return st
 
 
-OPERATOR_SCRIPTS = {'interactive_control.py', 'preflight.py', 'switch_brain.py', 'planner_cli.py',
-                    'validate_h5.py'}
+OPERATOR_SCRIPTS = {'interactive_control.py', 'planner_cli.py', 'telemetry.py'}
 
 
 def leaked_operator_processes() -> list[str]:
@@ -367,9 +366,9 @@ class Harness:
         if h5:
             ok, msg = check_h5(h5[-1])
             self.r.add('S9', 'HDF5 raw N x 7, nonzero monotonic t, metadata', ok, msg)
-            v = subprocess.run(['ros2', 'run', 'ur5_controller', 'validate_h5.py', h5[-1]],
+            v = subprocess.run(['ros2', 'run', 'ur5_controller', 'telemetry.py', 'validate', h5[-1]],
                                env=self.env, capture_output=True, text=True, timeout=120)
-            self.r.add('S9b', 'validate_h5.py exit 0', v.returncode == 0,
+            self.r.add('S9b', 'telemetry.py validate exit 0', v.returncode == 0,
                        last_line(v.stdout + v.stderr))
         else:
             self.r.add('S9', 'HDF5 written', False, 'no new .h5 found')
@@ -560,8 +559,8 @@ class Harness:
         self.pid_guard('reset edge cases')
 
     def stage_torque(self, p) -> None:
-        exp_dir = os.path.join(REPO, 'ur5_controller', 'config', 'experiments')
-        slice_yaml = os.path.join(exp_dir, 'slice_s10.yaml')
+        exp_dir = os.path.join(REPO, 'ur5_controller', 'config')
+        slice_yaml = os.path.join(exp_dir, 'experiment_slice.yaml')
         if not os.path.exists(slice_yaml):
             self.r.add('S8', 'Brain B loop >= 99 Hz vs /clock', False, 'no experiment config')
             self.r.add('S10', 'benchmark slice unattended on one Gazebo PID', False,
@@ -585,9 +584,9 @@ class Harness:
                    bool(rates) and min(rates) >= 99.0,
                    f'min={min(rates) if rates else None} rates={[round(x, 1) for x in rates]}')
         for path in h5[:2]:
-            v = subprocess.run(['ros2', 'run', 'ur5_controller', 'validate_h5.py', path],
+            v = subprocess.run(['ros2', 'run', 'ur5_controller', 'telemetry.py', 'validate', path],
                                env=self.env, capture_output=True, text=True, timeout=120)
-            self.r.add('S9t', f'validate_h5.py {os.path.basename(path)}', v.returncode == 0,
+            self.r.add('S9t', f'telemetry.py validate {os.path.basename(path)}', v.returncode == 0,
                        last_line(v.stdout + v.stderr))
         self.settle_hold(p, 'after torque slice', 'S3t', 5.0)
 

@@ -95,8 +95,8 @@ _ur5_pids() {
 ur5kill() {
   echo "+ stop operator clients, Gazebo, bridges, move_group, RViz, planner, spawners (rmw_zenohd stays)"
   local pat pids
-  for pat in 'interactive_control.py' 'planner_cli.py' 'preflight.py' 'switch_brain.py' \
-             'gz sim' 'bringup.launch.py' 'gazebo_sim.launch.py' 'ur5_description/launch/sim.launch.py' 'planner.launch.py' \
+  for pat in 'interactive_control.py' 'planner_cli.py' 'telemetry.py' \
+             'gz sim' 'gazebo_sim.launch.py' 'ur5_description/launch/sim.launch.py' 'planner.launch.py' \
              'parameter_bridge' 'robot_state_publisher' 'move_group' 'rviz2' 'multi_waypoint_planner' \
              'controller_manager/spawner'; do
     pids="$(_ur5_pids "${pat}")"
@@ -120,16 +120,16 @@ _ur5_refuse_second_sim() {
 ur5sim() {
   ur5env || return
   _ur5_refuse_second_sim || return
-  echo "+ ros2 launch ur5_controller bringup.launch.py gz_headless:=true start_rviz:=false $*"
-  ros2 launch ur5_controller bringup.launch.py gz_headless:=true start_rviz:=false "$@"
+  echo "+ ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=true start_rviz:=false $*"
+  ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=true start_rviz:=false "$@"
 }
 
 ur5simgui() {
   ur5env || return
   _ur5_refuse_second_sim || return
   local engine="${GZ_SIM_RENDER_ENGINE:-ogre}"
-  echo "+ ros2 launch ur5_controller bringup.launch.py gz_headless:=false start_rviz:=true gz_render_engine:=${engine} $*"
-  ros2 launch ur5_controller bringup.launch.py gz_headless:=false start_rviz:=true \
+  echo "+ ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=false start_rviz:=true gz_render_engine:=${engine} $*"
+  ros2 launch ur5_moveit_config gazebo_sim.launch.py gz_headless:=false start_rviz:=true \
     gz_render_engine:="${engine}" "$@"
 }
 
@@ -147,8 +147,8 @@ ur5setup() {
 
 ur5candle() {
   ur5env || return
-  echo "+ ros2 run ur5_controller preflight.py"
-  ros2 run ur5_controller preflight.py
+  echo "+ ros2 run ur5_controller interactive_control.py --candle"
+  ros2 run ur5_controller interactive_control.py --candle
 }
 
 ur5reset() {
@@ -197,7 +197,7 @@ ur5torque() {
   shift
   if [[ ! -f "${exp}" ]]; then
     local shipped
-    shipped="$(ros2 pkg prefix ur5_controller)/share/ur5_controller/config/experiments/${exp}"
+    shipped="$(ros2 pkg prefix ur5_controller)/share/ur5_controller/config/${exp}"
     [[ -f "${shipped}" ]] && exp="${shipped}"
   fi
   echo "+ ros2 run ur5_controller interactive_control.py --scheme torque --experiment ${exp} $*"
@@ -210,8 +210,8 @@ ur5brain() {
     a|A|b|B) ;;
     *) _ur5_die 2 "usage: ur5 brain a | ur5 brain b [--sec N]"; return ;;
   esac
-  echo "+ ros2 run ur5_controller switch_brain.py $*"
-  ros2 run ur5_controller switch_brain.py "$@"
+  echo "+ ros2 run ur5_controller interactive_control.py --brain $*"
+  ros2 run ur5_controller interactive_control.py --brain "$@"
 }
 
 # Run planner_cli.py with "$@", starting multi_waypoint_planner in the background unless one is
@@ -314,8 +314,8 @@ ur5validate() {
   if [[ -z "${1:-}" ]]; then
     _ur5_die 2 "usage: ur5 validate <file.h5 | directory>"; return
   fi
-  echo "+ ros2 run ur5_controller validate_h5.py $*"
-  ros2 run ur5_controller validate_h5.py "$@"
+  echo "+ ros2 run ur5_controller telemetry.py validate $*"
+  ros2 run ur5_controller telemetry.py validate "$@"
 }
 
 ur5doctor() {

@@ -64,7 +64,7 @@ def load_experiment(path: str, trial: str | None = None, seed: int | None = None
     if not os.path.isfile(path):
         from ur5_common import resolve_file
         try:
-            path = resolve_file('ur5_controller', os.path.join('config', 'experiments', path))
+            path = resolve_file('ur5_controller', os.path.join('config', path))
         except FileNotFoundError:
             raise InputError(f'experiment file not found: {path}')
     try:
